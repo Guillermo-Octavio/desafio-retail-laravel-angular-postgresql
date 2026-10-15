@@ -1,0 +1,12 @@
+{
+    "mcpServers": {
+        "laravel-boost": {
+            "command": "wsl.exe",
+            "args": [
+                "/home/guillermo/.config/herd-lite/bin/php",
+                "/home/guillermo/Work/Guillermo/Haulmer/desafio-retail-laravel-angular-postgresql/api/artisan",
+                "boost:mcp"
+            ]
+        }
+    }
+}
