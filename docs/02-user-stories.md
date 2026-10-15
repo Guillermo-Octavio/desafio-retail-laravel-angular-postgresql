@@ -49,7 +49,7 @@ contrato de la API.
 
 **Criterios de aceptación**
 
-1. `POST /payments` con una solicitud válida y un `Idempotency-Key` crea exactamente una transacción.
+1. `POST /api/payments` con una solicitud válida y un `Idempotency-Key` crea exactamente una transacción.
 2. La transacción comienza en `PENDING`, pasa a `PROCESSING` antes de llamar al adquirente y termina en un estado final.
 3. La respuesta es `201 Created` e incluye `transaction_id`, `merchant_id`, `amount`, `currency`, `status`, `card.brand`, `card.last4`, `created_at` y `updated_at`.
 4. La respuesta devuelve el estado final alcanzado durante la solicitud (procesamiento síncrono, SUP-07).
@@ -61,7 +61,7 @@ Característica: Enviar un pago
   Escenario: Pago aprobado
     Dado una solicitud de pago válida con la tarjeta "4111111111111111"
     Y el header "Idempotency-Key" con valor "key-001"
-    Cuando el comercio envía POST /payments
+    Cuando el comercio envía POST /api/payments
     Entonces el código de respuesta es 201
     Y el "status" de la respuesta es "APPROVED"
     Y la respuesta contiene un "transaction_id"
@@ -70,7 +70,7 @@ Característica: Enviar un pago
 
   Escenario: La transacción recorre los estados esperados
     Dado una solicitud de pago válida con la tarjeta "4111111111111111"
-    Cuando el comercio envía POST /payments
+    Cuando el comercio envía POST /api/payments
     Entonces el historial de la transacción es "PENDING", "PROCESSING", "APPROVED" en ese orden
 ```
 
@@ -95,7 +95,7 @@ Característica: Rechazar datos de entrada inválidos
   Esquema del escenario: Un campo inválido se rechaza sin crear la transacción
     Dado una solicitud de pago válida
     Pero el campo "<campo>" tiene el valor <valor>
-    Cuando el comercio envía POST /payments
+    Cuando el comercio envía POST /api/payments
     Entonces el código de respuesta es 422
     Y el código de error de la respuesta es "VALIDATION_ERROR"
     Y la respuesta informa un error para el campo "<campo>"
@@ -116,7 +116,7 @@ Característica: Rechazar datos de entrada inválidos
 
   Escenario: Se informan varios campos inválidos a la vez
     Dado una solicitud de pago sin "amount" y sin "currency"
-    Cuando el comercio envía POST /payments
+    Cuando el comercio envía POST /api/payments
     Entonces el código de respuesta es 422
     Y la respuesta informa errores para los campos "amount" y "currency"
 ```
@@ -144,7 +144,7 @@ Característica: Aplicar reglas de negocio
   Esquema del escenario: Límite de monto por moneda
     Dado una solicitud de pago válida
     Y el "amount" es <monto> y la "currency" es "<moneda>"
-    Cuando el comercio envía POST /payments
+    Cuando el comercio envía POST /api/payments
     Entonces el "status" de la respuesta es "<estado>"
 
     # Los montos están en unidades mínimas: en USD, 500000 = US$5.000,00 y 500001 = US$5.000,01.
@@ -158,14 +158,14 @@ Característica: Aplicar reglas de negocio
 
   Escenario: Pago en USD con centavos
     Dado una solicitud de pago válida con "amount" 1050 en "USD"
-    Cuando el comercio envía POST /payments
+    Cuando el comercio envía POST /api/payments
     Entonces el código de respuesta es 201
     Y el "amount" de la respuesta es 1050
     Y la "currency" de la respuesta es "USD"
 
   Escenario: Un monto sobre el límite se rechaza sin llamar al adquirente
     Dado una solicitud de pago válida con "amount" 5000001 en "CLP"
-    Cuando el comercio envía POST /payments
+    Cuando el comercio envía POST /api/payments
     Entonces el código de respuesta es 201
     Y el "status" de la respuesta es "DECLINED"
     Y el "decline_reason" de la respuesta es "AMOUNT_LIMIT_EXCEEDED"
@@ -173,7 +173,7 @@ Característica: Aplicar reglas de negocio
 
   Escenario: El número de tarjeta no cumple el algoritmo de Luhn
     Dado una solicitud de pago válida con la tarjeta "4111111111111112"
-    Cuando el comercio envía POST /payments
+    Cuando el comercio envía POST /api/payments
     Entonces el "status" de la respuesta es "DECLINED"
     Y el "decline_reason" de la respuesta es "INVALID_CARD_NUMBER"
     Y no se llamó al adquirente
@@ -181,14 +181,14 @@ Característica: Aplicar reglas de negocio
   Escenario: Tarjeta vencida
     Dado que hoy es "2026-10-15"
     Y una solicitud de pago válida con vencimiento en el mes 9 del año 2026
-    Cuando el comercio envía POST /payments
+    Cuando el comercio envía POST /api/payments
     Entonces el "status" de la respuesta es "DECLINED"
     Y el "decline_reason" de la respuesta es "CARD_EXPIRED"
 
   Escenario: Una tarjeta que vence este mes sigue siendo válida
     Dado que hoy es "2026-10-15"
     Y una solicitud de pago válida con vencimiento en el mes 10 del año 2026
-    Cuando el comercio envía POST /payments
+    Cuando el comercio envía POST /api/payments
     Entonces el "status" de la respuesta es "APPROVED"
 ```
 
@@ -213,7 +213,7 @@ Característica: Respetar la decisión del adquirente
 
   Escenario: El adquirente rechaza el pago
     Dado una solicitud de pago válida con la tarjeta "4000000000000002"
-    Cuando el comercio envía POST /payments
+    Cuando el comercio envía POST /api/payments
     Entonces el código de respuesta es 201
     Y el "status" de la respuesta es "DECLINED"
     Y el "decline_reason" de la respuesta es "INSUFFICIENT_FUNDS"
@@ -259,14 +259,14 @@ Característica: Tolerar errores temporales del adquirente
 
   Escenario: El adquirente se recupera tras un error temporal
     Dado una solicitud de pago válida con la tarjeta "4000000000000259"
-    Cuando el comercio envía POST /payments
+    Cuando el comercio envía POST /api/payments
     Entonces el "status" de la respuesta es "APPROVED"
     Y se llamó al adquirente exactamente 2 veces
     Y el historial de la transacción registra 1 intento fallido al adquirente
 
   Escenario: El adquirente sigue fallando
     Dado una solicitud de pago válida con la tarjeta "4000000000000119"
-    Cuando el comercio envía POST /payments
+    Cuando el comercio envía POST /api/payments
     Entonces el código de respuesta es 201
     Y el "status" de la respuesta es "FAILED"
     Y el "decline_reason" de la respuesta es "ACQUIRER_UNAVAILABLE"
@@ -283,7 +283,7 @@ Característica: Tolerar errores temporales del adquirente
 
 **Criterios de aceptación**
 
-1. `POST /payments` exige el header `Idempotency-Key`; sin él, la respuesta es `400` `IDEMPOTENCY_KEY_MISSING`.
+1. `POST /api/payments` exige el header `Idempotency-Key`; sin él, la respuesta es `400` `IDEMPOTENCY_KEY_MISSING`.
 2. La clave es única **por comercio**: dos comercios pueden usar la misma clave de forma independiente.
 3. Mismo comercio, misma clave y mismo contenido → se devuelve la respuesta original (mismo código y cuerpo) con el header `Idempotent-Replayed: true`, sin crear otra transacción.
 4. Mismo comercio, misma clave y contenido distinto → `409` `IDEMPOTENCY_KEY_REUSED`.
@@ -292,7 +292,7 @@ Característica: Tolerar errores temporales del adquirente
 
 ```mermaid
 flowchart TD
-    R[POST /payments] --> K{¿Trae Idempotency-Key?}
+    R[POST /api/payments] --> K{¿Trae Idempotency-Key?}
     K -- No --> E400[400 IDEMPOTENCY_KEY_MISSING]
     K -- Sí --> X{¿Existe la clave para el comercio?}
     X -- No --> N[Procesar y guardar la respuesta]
@@ -310,7 +310,7 @@ Característica: Evitar pagos duplicados
   Escenario: Falta la clave de idempotencia
     Dado una solicitud de pago válida
     Y sin el header "Idempotency-Key"
-    Cuando el comercio envía POST /payments
+    Cuando el comercio envía POST /api/payments
     Entonces el código de respuesta es 400
     Y el código de error de la respuesta es "IDEMPOTENCY_KEY_MISSING"
 
@@ -352,7 +352,7 @@ Característica: Evitar pagos duplicados
 
 **Criterios de aceptación**
 
-1. `GET /payments/{transaction_id}` responde `200` con la misma representación que la respuesta de creación.
+1. `GET /api/payments/{transaction_id}` responde `200` con la misma representación que la respuesta de creación.
 2. Un identificador desconocido responde `404` `TRANSACTION_NOT_FOUND`.
 3. Un identificador mal formado (que no es UUID) también responde `404`, sin exponer errores internos.
 
@@ -362,12 +362,12 @@ Característica: Consultar una transacción
 
   Escenario: Transacción existente
     Dado que existe una transacción "APPROVED" con el identificador "9f1c..."
-    Cuando el analista envía GET /payments/9f1c...
+    Cuando el analista envía GET /api/payments/9f1c...
     Entonces el código de respuesta es 200
     Y el "status" de la respuesta es "APPROVED"
 
   Esquema del escenario: Transacción inexistente
-    Cuando el analista envía GET /payments/<id>
+    Cuando el analista envía GET /api/payments/<id>
     Entonces el código de respuesta es 404
     Y el código de error de la respuesta es "TRANSACTION_NOT_FOUND"
 
@@ -387,7 +387,7 @@ Característica: Consultar una transacción
 
 **Criterios de aceptación**
 
-1. `GET /payments` acepta los filtros opcionales `merchant_id` y `status`, combinables entre sí.
+1. `GET /api/payments` acepta los filtros opcionales `merchant_id` y `status`, combinables entre sí.
 2. Los resultados se ordenan del más reciente al más antiguo y se paginan: 20 por página por defecto, máximo 100 (SUP-13).
 3. Un valor de `status` desconocido responde `422` `VALIDATION_ERROR`.
 4. Si no hay coincidencias, responde `200` con una lista vacía.
@@ -405,26 +405,26 @@ Característica: Listar transacciones
       | merchant-002 | APPROVED |
 
   Escenario: Filtrar por comercio y estado
-    Cuando el analista envía GET /payments?merchant_id=merchant-001&status=APPROVED
+    Cuando el analista envía GET /api/payments?merchant_id=merchant-001&status=APPROVED
     Entonces el código de respuesta es 200
     Y la respuesta contiene 1 transacción
 
   Escenario: Filtrar solo por comercio
-    Cuando el analista envía GET /payments?merchant_id=merchant-001
+    Cuando el analista envía GET /api/payments?merchant_id=merchant-001
     Entonces la respuesta contiene 3 transacciones ordenadas de la más reciente a la más antigua
 
   Escenario: Sin coincidencias
-    Cuando el analista envía GET /payments?merchant_id=merchant-999
+    Cuando el analista envía GET /api/payments?merchant_id=merchant-999
     Entonces el código de respuesta es 200
     Y la respuesta contiene 0 transacciones
 
   Escenario: Filtro de estado inválido
-    Cuando el analista envía GET /payments?status=PAID
+    Cuando el analista envía GET /api/payments?status=PAID
     Entonces el código de respuesta es 422
     Y el código de error de la respuesta es "VALIDATION_ERROR"
 
   Escenario: El tamaño de página tiene un máximo
-    Cuando el analista envía GET /payments?per_page=500
+    Cuando el analista envía GET /api/payments?per_page=500
     Entonces el tamaño de página utilizado es 100
 ```
 
@@ -440,7 +440,7 @@ Característica: Listar transacciones
 
 1. Cada cambio de estado se guarda como un evento de solo inserción con: estado anterior, estado nuevo, motivo, fecha y hora, e identificador de correlación.
 2. Cada intento al adquirente se guarda como un evento con número de intento, resultado y duración.
-3. `GET /payments/{transaction_id}` incluye los eventos en orden cronológico.
+3. `GET /api/payments/{transaction_id}` incluye los eventos en orden cronológico.
 4. Los eventos nunca se modifican ni se eliminan.
 
 ```gherkin
@@ -449,7 +449,7 @@ Característica: Trazar el historial de la transacción
 
   Escenario: Historial de un pago que necesitó un reintento
     Dado una solicitud de pago válida con la tarjeta "4000000000000259"
-    Cuando el comercio envía POST /payments
+    Cuando el comercio envía POST /api/payments
     Y el analista consulta esa transacción
     Entonces los eventos son, en orden:
       | tipo             | desde      | hasta      | detalle          |
@@ -484,20 +484,20 @@ Característica: Correlacionar logs y eventos
   Escenario: Se propaga el identificador de correlación enviado por el cliente
     Dado una solicitud de pago válida
     Y el header "X-Correlation-Id" con valor "corr-123"
-    Cuando el comercio envía POST /payments
+    Cuando el comercio envía POST /api/payments
     Entonces el header "X-Correlation-Id" de la respuesta es "corr-123"
     Y el "correlation_id" de la transacción es "corr-123"
     Y cada línea de log de la solicitud contiene "correlation_id" con valor "corr-123"
 
   Escenario: Se genera el identificador de correlación cuando falta
     Dado una solicitud de pago válida sin "X-Correlation-Id"
-    Cuando el comercio envía POST /payments
+    Cuando el comercio envía POST /api/payments
     Entonces el header "X-Correlation-Id" de la respuesta es un UUID
 
   Escenario: Los errores también llevan el identificador de correlación
     Dado una solicitud de pago inválida
     Y el header "X-Correlation-Id" con valor "corr-456"
-    Cuando el comercio envía POST /payments
+    Cuando el comercio envía POST /api/payments
     Entonces el código de respuesta es 422
     Y el header "X-Correlation-Id" de la respuesta es "corr-456"
 ```
@@ -522,7 +522,7 @@ Característica: Proteger los datos de tarjeta
 
   Escenario: Los datos de la tarjeta se enmascaran en todas partes
     Dado una solicitud de pago válida con la tarjeta "4111111111111111" y el CVV "123"
-    Cuando el comercio envía POST /payments
+    Cuando el comercio envía POST /api/payments
     Entonces la respuesta contiene "card.brand" "VISA" y "card.last4" "1111"
     Y ni la respuesta, ni la base de datos, ni los logs contienen "4111111111111111"
     Y ni la base de datos ni los logs contienen el CVV
@@ -538,8 +538,8 @@ Característica: Proteger los datos de tarjeta
 
 **Criterios de aceptación**
 
-1. La página lista transacciones con filtros por comercio y estado, usando `GET /payments`.
-2. Al seleccionar una transacción se muestran su detalle y su historial de eventos, usando `GET /payments/{transaction_id}`.
+1. La página lista transacciones con filtros por comercio y estado, usando `GET /api/payments`.
+2. Al seleccionar una transacción se muestran su detalle y su historial de eventos, usando `GET /api/payments/{transaction_id}`.
 3. Los estados de carga, vacío y error son visibles.
 4. La página cumple WCAG AA (navegación con teclado, etiquetas y contraste).
 

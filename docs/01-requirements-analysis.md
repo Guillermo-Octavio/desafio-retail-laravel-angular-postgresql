@@ -13,8 +13,8 @@ que las autorice o rechace, y registra el estado de cada transacción con trazab
 
 ```mermaid
 flowchart LR
-    M[Comercio] -- "POST /payments" --> S[Payment Processing Service]
-    A[Analista de operaciones] -- "GET /payments" --> S
+    M[Comercio] -- "POST /api/payments" --> S[Payment Processing Service]
+    A[Analista de operaciones] -- "GET /api/payments" --> S
     S -- "Autorización" --> Q[Acquirer Mock]
     S -- "Transacciones y eventos" --> D[(PostgreSQL)]
 ```
@@ -31,16 +31,20 @@ flowchart LR
 
 | ID | Requerimiento (según el enunciado) |
 |----|------------------------------------|
-| RF-01 | Exponer `POST /payments` para recibir solicitudes de pago. |
+| RF-01 | Exponer `POST /api/payments` para recibir solicitudes de pago. |
 | RF-02 | La solicitud incluye `merchant_id`, monto, moneda y datos de tarjeta. |
 | RF-03 | Validar los datos de entrada antes de procesar la transacción. |
 | RF-04 | Crear una nueva transacción con un estado inicial. |
 | RF-05 | Aplicar reglas de negocio básicas (por ejemplo, monto máximo o validación de tarjeta). |
 | RF-06 | Enviar la transacción a un **Acquirer Mock** que simule la autorización. |
 | RF-07 | Actualizar el estado final de la transacción según la respuesta del adquirente. |
-| RF-08 | `GET /payments/{transaction_id}` devuelve una transacción. |
-| RF-09 | `GET /payments?merchant_id=...&status=...` lista transacciones con filtros. |
+| RF-08 | `GET /api/payments/{transaction_id}` devuelve una transacción. |
+| RF-09 | `GET /api/payments?merchant_id=...&status=...` lista transacciones con filtros. |
 | RF-10 | *(Opcional)* Vista en Angular para consultar transacciones. |
+
+El enunciado define las rutas como `/payments`. En este proyecto se publican bajo el prefijo
+`/api` (`/api/payments`), porque el gateway enruta `/api` hacia Laravel (ver DA-08 en
+[04-architecture.md](04-architecture.md#10-decisiones-de-arquitectura)).
 
 Estados sugeridos: `PENDING`, `PROCESSING`, `APPROVED`, `DECLINED`, `FAILED`.
 
@@ -90,11 +94,11 @@ que puede revisarse.
 | SUP-04 | Regla de "monto máximo". | Límite configurable por moneda: CLP 5.000.000 (`5000000`) y USD 5.000,00 (`500000` centavos). Superarlo rechaza la transacción con el motivo `AMOUNT_LIMIT_EXCEEDED`. |
 | SUP-05 | Campos de la tarjeta. | `number` (13 a 19 dígitos), `holder_name`, `expiry_month`, `expiry_year` y `cvv` (3 o 4 dígitos). |
 | SUP-06 | Validación de entrada frente a reglas de negocio. | La **validación de entrada** (campos faltantes, tipos o formatos incorrectos, moneda no soportada) responde `422` y **no** crea transacción. Las **reglas de negocio** (límite de monto, algoritmo de Luhn, tarjeta vencida) se aplican **después** de crear la transacción y la rechazan, de modo que el rechazo queda trazado. |
-| SUP-07 | Procesamiento síncrono o asíncrono. | **Síncrono**: `POST /payments` devuelve el estado final en la misma respuesta. El procesamiento asíncrono con colas se documenta como evolución, fuera del alcance actual. |
+| SUP-07 | Procesamiento síncrono o asíncrono. | **Síncrono**: `POST /api/payments` devuelve el estado final en la misma respuesta. El procesamiento asíncrono con colas se documenta como evolución, fuera del alcance actual. |
 | SUP-08 | Código HTTP de un pago procesado. | `201 Created` siempre que se haya creado la transacción, cualquiera sea su estado final. El comercio lee `status` para conocer el resultado. |
 | SUP-09 | Comportamiento del Acquirer Mock. | Determinista según el **número de tarjeta de prueba**, para que cada escenario sea reproducible (ver [sección 7](#7-tarjetas-de-prueba-del-acquirer-mock)). |
 | SUP-10 | Política de reintentos ante errores temporales. | Hasta 3 intentos en total, con backoff exponencial y timeout por intento. `FAILED` con motivo `ACQUIRER_UNAVAILABLE` al agotarlos. Las respuestas definitivas (aprobación o rechazo) nunca se reintentan. |
-| SUP-11 | Semántica de la idempotencia. | El header `Idempotency-Key` es obligatorio en `POST /payments` y su ámbito es el comercio. La misma clave con el mismo contenido devuelve la respuesta original sin crear otra transacción. La misma clave con contenido distinto responde `409`. |
+| SUP-11 | Semántica de la idempotencia. | El header `Idempotency-Key` es obligatorio en `POST /api/payments` y su ámbito es el comercio. La misma clave con el mismo contenido devuelve la respuesta original sin crear otra transacción. La misma clave con contenido distinto responde `409`. |
 | SUP-12 | Origen del identificador de correlación. | Se acepta `X-Correlation-Id` del cliente o, si no viene, se genera un UUID. Siempre se devuelve en la respuesta. |
 | SUP-13 | Comportamiento del listado. | Ambos filtros son opcionales. Los resultados se paginan (20 por página por defecto, máximo 100) y se ordenan del más reciente al más antiguo. Un valor de `status` inválido responde `422`. |
 | SUP-14 | Reintentar una transacción `FAILED`. | No se admite. El comercio envía un nuevo pago con una **nueva** clave de idempotencia. |
@@ -142,7 +146,7 @@ Un `amount` con decimales (`10.50`) o enviado como texto (`"1050"`) es un error 
 
 | HTTP | Código | Cuándo |
 |------|--------|--------|
-| 400 | `IDEMPOTENCY_KEY_MISSING` | `POST /payments` sin el header de idempotencia. |
+| 400 | `IDEMPOTENCY_KEY_MISSING` | `POST /api/payments` sin el header de idempotencia. |
 | 404 | `TRANSACTION_NOT_FOUND` | `transaction_id` desconocido. |
 | 409 | `IDEMPOTENCY_KEY_REUSED` | Misma clave con contenido distinto. |
 | 409 | `IDEMPOTENCY_KEY_IN_PROGRESS` | Misma clave mientras la primera solicitud sigue en proceso. |
