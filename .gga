@@ -1,0 +1,29 @@
+# Gentleman Guardian Angel — Payment Processing Service
+# AI code review that runs on every commit (pre-commit hook) against the rules in AGENTS.md.
+
+# AI provider
+PROVIDER="claude"
+
+# Files to review (comma-separated).
+# A pattern starting with "*" is matched as a literal suffix; any other pattern is a glob
+# matched against the full repository-relative path.
+#   *.php  -> Laravel API: app code, migrations and Pest tests
+#   *.ts   -> Angular web: components, services and Vitest specs
+#   *.html -> Angular templates (accessibility and template logic rules)
+FILE_PATTERNS="*.php,*.ts,*.html"
+
+# Files excluded from review: framework-generated configuration and bootstrap files,
+# the public front controller, and TypeScript declaration files.
+EXCLUDE_PATTERNS="*.d.ts,api/config/*,api/bootstrap/*,api/public/*"
+
+# Rules shared by coding agents and the reviewer
+RULES_FILE="AGENTS.md"
+
+# Fail the commit if the AI response is ambiguous
+STRICT_MODE="true"
+
+# Seconds to wait for the AI provider
+TIMEOUT="300"
+
+# Base branch for --pr-mode
+PR_BASE_BRANCH="main"
