@@ -3,3 +3,6 @@ Desafio_Tecnico_Haulmer_retail.pdf
 
 # Local agent tooling
 .atl/
+
+# Local environment configuration (credentials)
+.env
