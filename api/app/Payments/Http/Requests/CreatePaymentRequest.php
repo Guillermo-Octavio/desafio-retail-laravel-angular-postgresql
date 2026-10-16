@@ -27,6 +27,10 @@ final class CreatePaymentRequest extends FormRequest
 {
     private const string IDEMPOTENCY_KEY_FIELD = 'idempotency_key';
 
+    // Valid UTF-8 without control characters: a NUL byte is cut by the database driver and
+    // rejected by jsonb, which would fail the payment after the acquirer approved it.
+    private const string PRINTABLE_TEXT = 'regex:/^[^\p{C}]+$/u';
+
     /**
      * The idempotency key comes in a header and is validated with the body.
      *
@@ -43,14 +47,14 @@ final class CreatePaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            self::IDEMPOTENCY_KEY_FIELD => ['required', 'string', 'max:255'],
-            'merchant_id' => ['required', 'string', 'max:64'],
+            self::IDEMPOTENCY_KEY_FIELD => ['required', 'string', 'max:255', self::PRINTABLE_TEXT],
+            'merchant_id' => ['required', 'string', 'max:64', self::PRINTABLE_TEXT],
             // Strict: 10.50 and "1050" are rejected, amounts are integers in minor units (SUP-02).
             'amount' => ['required', 'integer:strict', 'min:1'],
             'currency' => ['required', 'string', Rule::enum(Currency::class)],
             'card' => ['required', 'array'],
             'card.number' => ['required', 'string', 'regex:/^\d{13,19}$/'],
-            'card.holder_name' => ['required', 'string', 'max:255'],
+            'card.holder_name' => ['required', 'string', 'max:255', self::PRINTABLE_TEXT],
             'card.expiry_month' => ['required', 'integer:strict', 'between:1,12'],
             'card.expiry_year' => ['required', 'integer:strict', 'between:1000,9999'],
             'card.cvv' => ['required', 'string', 'regex:/^\d{3,4}$/'],

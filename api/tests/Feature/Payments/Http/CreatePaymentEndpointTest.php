@@ -2,7 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Payments\Application\Exceptions\IdempotencyKeyInProgress;
+use App\Payments\Application\Exceptions\IdempotencyKeyReused;
+use App\Payments\Http\Exceptions\MissingIdempotencyKey;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Str;
 use Tests\Support\FakeAcquirer;
 use Tests\Support\PaymentRows;
@@ -65,6 +69,9 @@ it('rejects an invalid field without creating a transaction or reserving the key
 })->with([
     ['merchant_id', null],
     ['merchant_id', str_repeat('m', 65)],
+    'merchant_id with a NUL character' => ['merchant_id', "merchant-a\u{0000}b"],
+    'merchant_id with a line break' => ['merchant_id', "merchant\n001"],
+    'holder_name with a NUL character' => ['card.holder_name', "Ada\u{0000}Lovelace"],
     ['amount', 0],
     ['amount', -100],
     ['amount', 10.50],
@@ -78,6 +85,17 @@ it('rejects an invalid field without creating a transaction or reserving the key
     ['card.expiry_year', 30],
     ['card.cvv', '12'],
     ['card.cvv', 123],
+]);
+
+it('rejects an Idempotency-Key that is not valid UTF-8 or has control characters', function (string $key) {
+    $this->postJson('/api/payments', PaymentRows::paymentBody(), ['Idempotency-Key' => $key])
+        ->assertStatus(422)
+        ->assertJsonValidationErrorFor('idempotency_key', 'error.details');
+
+    expect(DB::table('idempotency_keys')->count())->toBe(0);
+})->with([
+    'invalid UTF-8' => ["key-\xff\xfe-001"],
+    'tab character' => ["key\t001"],
 ]);
 
 it('reports several invalid fields at once', function () {
@@ -95,7 +113,21 @@ it('replays the original response with the Idempotent-Replayed header', function
 
     $replay = $this->postJson('/api/payments', PaymentRows::paymentBody(), ['Idempotency-Key' => 'key-001']);
 
-    $replay->assertCreated()
-        ->assertHeader('Idempotent-Replayed', 'true')
-        ->assertExactJson($original->json());
+    $replay->assertCreated()->assertHeader('Idempotent-Replayed', 'true');
+    expect($replay->getContent())->toBe($original->getContent());
+});
+
+it('does not report expected client errors as application errors', function () {
+    Exceptions::fake();
+
+    $this->postJson('/api/payments', PaymentRows::paymentBody());
+    $this->postJson('/api/payments', PaymentRows::paymentBody(['amount' => 15000]), ['Idempotency-Key' => 'key-001']);
+    $this->postJson('/api/payments', PaymentRows::paymentBody(['amount' => 20000]), ['Idempotency-Key' => 'key-001']);
+
+    DB::table('idempotency_keys')->insert(PaymentRows::idempotencyKey(['idempotency_key' => 'key-in-progress']));
+    $this->postJson('/api/payments', PaymentRows::paymentBody(), ['Idempotency-Key' => 'key-in-progress']);
+
+    Exceptions::assertNotReported(MissingIdempotencyKey::class);
+    Exceptions::assertNotReported(IdempotencyKeyReused::class);
+    Exceptions::assertNotReported(IdempotencyKeyInProgress::class);
 });

@@ -20,6 +20,9 @@ final class PaymentsErrorRendering
 {
     public static function register(Exceptions $exceptions): void
     {
+        // Expected client errors: they are answered with a 4xx and are not application failures.
+        $exceptions->dontReport([MissingIdempotencyKey::class, IdempotencyKeyReused::class, IdempotencyKeyInProgress::class]);
+
         $exceptions->render(fn (MissingIdempotencyKey $error, Request $request): ?JsonResponse => ApiErrorRendering::forApi($request, fn () => ErrorResponse::make(
             JsonResponse::HTTP_BAD_REQUEST,
             'IDEMPOTENCY_KEY_MISSING',

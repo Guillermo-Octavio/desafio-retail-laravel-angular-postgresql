@@ -151,6 +151,8 @@ Un `amount` con decimales (`10.50`) o enviado como texto (`"1050"`) es un error 
 | 409 | `IDEMPOTENCY_KEY_REUSED` | Misma clave con contenido distinto. |
 | 409 | `IDEMPOTENCY_KEY_IN_PROGRESS` | Misma clave mientras la primera solicitud sigue en proceso. |
 | 422 | `VALIDATION_ERROR` | Falla la validación de entrada (con detalle por campo). |
+| 404 | `NOT_FOUND` | Ruta inexistente bajo `/api`. |
+| Su código | `HTTP_ERROR` | Otro error HTTP del framework, como un método no permitido (`405`). |
 | 500 | `INTERNAL_ERROR` | Fallo inesperado; no se exponen detalles internos. |
 
 Motivos de rechazo o fallo que se guardan en la transacción: `AMOUNT_LIMIT_EXCEEDED`,

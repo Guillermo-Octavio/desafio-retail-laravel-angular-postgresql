@@ -305,7 +305,7 @@ erDiagram
         varchar status
         uuid transaction_id FK
         smallint response_status
-        jsonb response_body
+        json response_body
         timestamptz created_at
         timestamptz updated_at
     }
@@ -362,7 +362,7 @@ no se modifican (DD-11).
 | `status` | `varchar(16)` | No | `IN_PROGRESS` o `COMPLETED`. |
 | `transaction_id` | `uuid` | Sí | FK a `transactions`; se completa al crear la transacción. |
 | `response_status` | `smallint` | Sí | Se completa al terminar. |
-| `response_body` | `jsonb` | Sí | Respuesta original, ya enmascarada, para devolverla en los reintentos. |
+| `response_body` | `json` | Sí | Respuesta original, ya enmascarada, para devolverla en los reintentos. Es `json` y no `jsonb` porque `jsonb` reordena las claves, y la repetición debe devolver exactamente el mismo cuerpo (HU-06). |
 | `created_at`, `updated_at` | `timestamptz` | No | |
 
 ```mermaid
