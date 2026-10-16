@@ -2,8 +2,8 @@
 
 Servicio que recibe pagos de múltiples comercios, valida los datos, aplica reglas de negocio, pide la
 autorización a un adquirente simulado (Acquirer Mock) y registra cada transacción con su historial
-completo. Está construido con Laravel 13, PostgreSQL 18 y Docker. La vista web en Angular es
-opcional y todavía no está implementada.
+completo. Está construido con Laravel 13, PostgreSQL 18 y Docker, e incluye una vista web en
+Angular 22 para consultar transacciones.
 
 ## Ruta rápida
 
@@ -29,7 +29,8 @@ Requisitos: Docker con Docker Compose v2.
    docker compose up -d --build
    ```
 
-4. Verificar que <http://localhost:8080/up> responda `200`.
+4. Verificar que <http://localhost:8080/up> responda `200`. La vista web queda en
+   <http://localhost:8080/transactions>.
 
 5. Enviar un pago:
 
@@ -89,6 +90,14 @@ El Acquirer Mock responde según el número de tarjeta:
 | `4000000000000119` | Falla en los 3 intentos: `FAILED` con `ACQUIRER_UNAVAILABLE` |
 | `4111111111111112` | No cumple Luhn: `DECLINED` con `INVALID_CARD_NUMBER`, sin llamar al adquirente |
 
+### Vista web
+
+<http://localhost:8080/transactions> lista las transacciones con filtros por comercio y estado, y
+con paginación. Al abrir una transacción se ven su detalle y su historial de eventos (HU-12). Los
+filtros y la página quedan en la URL, así que una búsqueda se puede compartir. La vista muestra
+estados de carga, vacío y error con "Retry", y cumple WCAG AA: etiquetas, navegación con teclado,
+foco visible y contraste.
+
 ### Seguir una transacción en los logs
 
 Los logs son JSON por `stderr`, y cada línea lleva `correlation_id` y, una vez creada la
@@ -119,6 +128,7 @@ regla de dependencias entre capas se verifica con pruebas `arch()` de Pest:
 | `Payments/Http` | Controllers sin lógica, Form Requests y API Resources. |
 | `Shared` | Correlación y formato único de errores. |
 | `AcquirerMock` | El simulador, activo solo en su contenedor. |
+| `web/` (Angular) | La vista de consulta: un servicio para la API, containers que coordinan y componentes de presentación. |
 
 Flujo de `POST /api/payments`:
 
@@ -190,6 +200,13 @@ está en la [sección 6 del análisis de requerimientos](docs/01-requirements-an
 
 ```sh
 docker compose exec -T api php artisan test --compact
+```
+
+La vista web tiene sus propias pruebas con Vitest. Cubren el servicio de la API, cada componente
+con verificaciones de accesibilidad de axe, los escenarios de HU-12 y el contraste de la paleta:
+
+```sh
+docker compose exec -T web npx ng test --watch=false
 ```
 
 La base `payments_test` se crea al inicializar el volumen de PostgreSQL
