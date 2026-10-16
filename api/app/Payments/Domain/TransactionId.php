@@ -11,7 +11,7 @@ use App\Payments\Domain\Exceptions\InvalidTransactionId;
  */
 final readonly class TransactionId
 {
-    private const string UUID_V7_FORMAT = '/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/';
+    private const string UUID_V7_FORMAT = '/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/';
 
     public string $value;
 

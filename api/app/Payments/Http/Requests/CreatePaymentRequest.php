@@ -29,7 +29,7 @@ final class CreatePaymentRequest extends FormRequest
 
     // Valid UTF-8 without control characters: a NUL byte is cut by the database driver and
     // rejected by jsonb, which would fail the payment after the acquirer approved it.
-    private const string PRINTABLE_TEXT = 'regex:/^[^\p{C}]+$/u';
+    private const string PRINTABLE_TEXT = 'regex:/^[^\p{C}]+\z/u';
 
     /**
      * The idempotency key comes in a header and is validated with the body.
@@ -53,11 +53,11 @@ final class CreatePaymentRequest extends FormRequest
             'amount' => ['required', 'integer:strict', 'min:1'],
             'currency' => ['required', 'string', Rule::enum(Currency::class)],
             'card' => ['required', 'array'],
-            'card.number' => ['required', 'string', 'regex:/^\d{13,19}$/'],
+            'card.number' => ['required', 'string', 'regex:'.CardNumber::FORMAT],
             'card.holder_name' => ['required', 'string', 'max:255', self::PRINTABLE_TEXT],
             'card.expiry_month' => ['required', 'integer:strict', 'between:1,12'],
             'card.expiry_year' => ['required', 'integer:strict', 'between:1000,9999'],
-            'card.cvv' => ['required', 'string', 'regex:/^\d{3,4}$/'],
+            'card.cvv' => ['required', 'string', 'regex:'.Cvv::FORMAT],
         ];
     }
 

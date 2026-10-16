@@ -7,7 +7,8 @@ namespace Tests\Support;
 use App\Payments\Application\Ports\RequestFingerprinter;
 
 /**
- * Raw table rows used to check the database constraints directly, bypassing the domain.
+ * Raw data for feature tests: table rows that bypass the domain to check the database
+ * constraints, the base payment request body, and idempotency rows for that body.
  */
 final class PaymentRows
 {

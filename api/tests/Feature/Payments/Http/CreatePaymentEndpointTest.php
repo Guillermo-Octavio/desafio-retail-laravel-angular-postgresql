@@ -5,8 +5,12 @@ declare(strict_types=1);
 use App\Payments\Application\Exceptions\IdempotencyKeyInProgress;
 use App\Payments\Application\Exceptions\IdempotencyKeyReused;
 use App\Payments\Http\Exceptions\MissingIdempotencyKey;
+use App\Payments\Http\Requests\CreatePaymentRequest;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Exceptions;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Tests\Support\FakeAcquirer;
 use Tests\Support\PaymentRows;
@@ -131,4 +135,24 @@ it('does not report expected client errors as application errors', function () {
     Exceptions::assertNotReported(MissingIdempotencyKey::class);
     Exceptions::assertNotReported(IdempotencyKeyReused::class);
     Exceptions::assertNotReported(IdempotencyKeyInProgress::class);
+});
+
+it('rejects a text field that ends with a line feed at the validation rules', function (string $field, string $value) {
+    $request = new CreatePaymentRequest;
+    $data = PaymentRows::paymentBody(['idempotency_key' => 'key-001', $field => $value]);
+
+    expect(Validator::make($data, $request->rules())->errors()->has($field))->toBeTrue();
+})->with([
+    ['merchant_id', "merchant-001\n"],
+    ['card.number', "4111111111111111\n"],
+    ['card.holder_name', "Ada Lovelace\n"],
+    ['card.cvv', "123\n"],
+    ['idempotency_key', "key-001\n"],
+]);
+
+it('trims a trailing line feed from the body before the card data reaches the acquirer', function () {
+    $this->postJson('/api/payments', PaymentRows::paymentBody(['card.number' => "4111111111111111\n", 'card.cvv' => "123\n"]), ['Idempotency-Key' => 'key-001'])
+        ->assertCreated();
+
+    Http::assertSent(fn (Request $request) => $request['card']['number'] === '4111111111111111' && $request['card']['cvv'] === '123');
 });

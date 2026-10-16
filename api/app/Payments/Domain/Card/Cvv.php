@@ -14,7 +14,7 @@ use SensitiveParameter;
  */
 final readonly class Cvv
 {
-    private const string FORMAT = '/^\d{3,4}$/';
+    public const string FORMAT = '/^\d{3,4}\z/';
 
     private string $digits;
 

@@ -22,7 +22,7 @@ final class AssignCorrelationId
     public const string CONTEXT_KEY = 'correlation_id';
 
     // Up to 64 visible ASCII characters: what an HTTP header allows and the column stores.
-    private const string ACCEPTED_FORMAT = '/^[\x21-\x7E]{1,64}$/';
+    private const string ACCEPTED_FORMAT = '/^[\x21-\x7E]{1,64}\z/';
 
     private const string REPLACED_LOG_EVENT = 'correlation_id.replaced';
 

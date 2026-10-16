@@ -12,7 +12,7 @@ use App\Payments\Domain\Exceptions\InvalidRequestFingerprint;
  */
 final readonly class RequestFingerprint
 {
-    private const string SHA256_HEX_FORMAT = '/^[0-9a-f]{64}$/';
+    private const string SHA256_HEX_FORMAT = '/^[0-9a-f]{64}\z/';
 
     public function __construct(public string $value)
     {

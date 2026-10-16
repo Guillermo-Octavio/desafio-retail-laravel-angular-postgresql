@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\AcquirerMock\AcquirerMockServiceProvider;
+use App\AcquirerMock\Http\AuthorizeRequest;
+use Illuminate\Support\Facades\Validator;
 use Tests\Support\AcquirerMockRequests;
 
 beforeEach(function () {
@@ -47,4 +49,14 @@ it('rejects a malformed authorization request', function (array $change) {
     'missing transaction id' => [['transaction_id' => null]],
     'decimal amount' => [['amount' => 10.5]],
     'short card number' => [['card' => ['number' => '4111']]],
+]);
+
+it('rejects card formats that end with a line feed at the validation rules', function (string $field, string $value) {
+    $data = AcquirerMockRequests::authorization();
+    data_set($data, $field, $value);
+
+    expect(Validator::make($data, (new AuthorizeRequest)->rules())->errors()->has($field))->toBeTrue();
+})->with([
+    ['card.number', "4111111111111111\n"],
+    ['card.cvv', "123\n"],
 ]);

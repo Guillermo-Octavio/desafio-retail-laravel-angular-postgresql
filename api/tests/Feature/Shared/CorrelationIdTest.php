@@ -52,6 +52,7 @@ it('replaces an unusable correlation id and logs only its length', function (str
     'contains a space' => ['corr 123'],
     'not ASCII' => ['corr-ñandú'],
     'control character' => ["corr\t123"],
+    'trailing line feed' => ["corr-123\n"],
 ]);
 
 it('returns the correlation id on error responses too', function (string $path, int $status) {

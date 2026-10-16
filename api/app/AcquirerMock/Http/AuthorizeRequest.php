@@ -19,10 +19,10 @@ final class AuthorizeRequest extends FormRequest
             'amount' => ['required', 'integer', 'min:1'],
             'currency' => ['required', 'string', 'size:3'],
             'card' => ['required', 'array'],
-            'card.number' => ['required', 'string', 'regex:/^\d{13,19}$/'],
+            'card.number' => ['required', 'string', 'regex:/^\d{13,19}\z/'],
             'card.expiry_month' => ['required', 'integer', 'between:1,12'],
             'card.expiry_year' => ['required', 'integer', 'digits:4'],
-            'card.cvv' => ['required', 'string', 'regex:/^\d{3,4}$/'],
+            'card.cvv' => ['required', 'string', 'regex:/^\d{3,4}\z/'],
         ];
     }
 }

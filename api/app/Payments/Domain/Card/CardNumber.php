@@ -14,7 +14,7 @@ use SensitiveParameter;
  */
 final readonly class CardNumber
 {
-    private const string FORMAT = '/^\d{13,19}$/';
+    public const string FORMAT = '/^\d{13,19}\z/';
 
     private const int VISIBLE_DIGITS = 4;
 

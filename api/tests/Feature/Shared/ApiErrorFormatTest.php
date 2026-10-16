@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Payments\Application\Exceptions\IdempotencyKeyInProgress;
 use App\Payments\Application\Exceptions\IdempotencyKeyReused;
 use App\Payments\Http\Exceptions\MissingIdempotencyKey;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -18,6 +19,7 @@ beforeEach(function () {
         Route::get('in-progress', fn () => throw IdempotencyKeyInProgress::create());
         Route::get('missing-key', fn () => throw MissingIdempotencyKey::create());
         Route::get('crash', fn () => throw new RuntimeException('database password is hunter2'));
+        Route::get('explicit-response', fn () => throw new HttpResponseException(response()->json(['custom' => true], 418)));
     });
 });
 
@@ -67,4 +69,10 @@ it('answers other framework HTTP errors with their status and the error format',
     $this->deleteJson('/api/test-errors/crash')
         ->assertStatus(405)
         ->assertExactJson(['error' => ['code' => 'HTTP_ERROR', 'message' => 'The request could not be handled.']]);
+});
+
+it('keeps a response the code chose explicitly instead of turning it into an internal error', function () {
+    $this->getJson('/api/test-errors/explicit-response')
+        ->assertStatus(418)
+        ->assertExactJson(['custom' => true]);
 });

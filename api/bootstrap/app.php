@@ -20,7 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
+            fn (Request $request) => ApiErrorRendering::isApiRequest($request) || $request->expectsJson(),
         );
 
         // Module errors first: the shared rendering ends with a catch-all for internal errors.

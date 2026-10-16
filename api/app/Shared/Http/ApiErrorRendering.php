@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Shared\Http;
 
 use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -19,6 +20,11 @@ use Throwable;
 final class ApiErrorRendering
 {
     private const string API_PATHS = 'api/*';
+
+    public static function isApiRequest(Request $request): bool
+    {
+        return $request->is(self::API_PATHS);
+    }
 
     public static function register(Exceptions $exceptions): void
     {
@@ -42,11 +48,14 @@ final class ApiErrorRendering
         )));
 
         // Never exposes the exception message: it may hold internal details or sensitive data.
-        $exceptions->render(fn (Throwable $error, Request $request): ?JsonResponse => self::forApi($request, fn () => ErrorResponse::make(
-            JsonResponse::HTTP_INTERNAL_SERVER_ERROR,
-            'INTERNAL_ERROR',
-            'An unexpected error occurred.',
-        )));
+        // A response the code chose explicitly is left to Laravel, which returns it as is.
+        $exceptions->render(fn (Throwable $error, Request $request): ?JsonResponse => $error instanceof HttpResponseException
+            ? null
+            : self::forApi($request, fn () => ErrorResponse::make(
+                JsonResponse::HTTP_INTERNAL_SERVER_ERROR,
+                'INTERNAL_ERROR',
+                'An unexpected error occurred.',
+            )));
     }
 
     /**
@@ -54,6 +63,6 @@ final class ApiErrorRendering
      */
     public static function forApi(Request $request, callable $render): ?JsonResponse
     {
-        return $request->is(self::API_PATHS) ? $render() : null;
+        return self::isApiRequest($request) ? $render() : null;
     }
 }
