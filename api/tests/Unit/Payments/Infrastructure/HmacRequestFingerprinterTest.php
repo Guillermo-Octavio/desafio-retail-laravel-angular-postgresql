@@ -35,8 +35,13 @@ it('changes the fingerprint when any field of the content changes', function (ar
     'holder name' => [['holderName' => 'Grace Hopper']],
     'expiry month' => [['expiryMonth' => 11]],
     'expiry year' => [['expiryYear' => 2031]],
-    'cvv' => [['cvv' => '456']],
 ]);
+
+it('leaves the CVV out, because it must not be kept in any form after authorization', function () {
+    $original = $this->fingerprinter->fingerprint(PaymentFixtures::command(cvv: '123'));
+
+    expect($this->fingerprinter->fingerprint(PaymentFixtures::command(cvv: '456'))->equals($original))->toBeTrue();
+});
 
 it('signs the content with the application secret', function () {
     $other = new HmacRequestFingerprinter('base64:another-secret');

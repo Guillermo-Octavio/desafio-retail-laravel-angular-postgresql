@@ -33,7 +33,9 @@ final readonly class HmacRequestFingerprinter implements RequestFingerprinter
     }
 
     /**
-     * Fixed key order so the same content always produces the same JSON.
+     * Fixed key order so the same content always produces the same JSON. The CVV is left out:
+     * sensitive authentication data must not be kept after authorization in any form, not even
+     * as a keyed hash (PCI DSS).
      *
      * @return array<string, mixed>
      */
@@ -48,7 +50,6 @@ final readonly class HmacRequestFingerprinter implements RequestFingerprinter
                 'holder_name' => $command->cardHolderName,
                 'expiry_month' => $command->card->expiry->month,
                 'expiry_year' => $command->card->expiry->year,
-                'cvv' => $command->card->cvv->reveal(),
             ],
         ];
     }

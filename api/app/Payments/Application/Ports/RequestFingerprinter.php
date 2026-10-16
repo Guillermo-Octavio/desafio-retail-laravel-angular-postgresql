@@ -11,7 +11,8 @@ interface RequestFingerprinter
 {
     /**
      * Fingerprints the payment content, excluding the idempotency key and the correlation id,
-     * so a retry of the same request matches the original (SUP-11).
+     * so a retry of the same request matches the original (SUP-11). The CVV is excluded too,
+     * because it must not be kept in any form after authorization.
      */
     public function fingerprint(ProcessPaymentCommand $command): RequestFingerprint;
 }
