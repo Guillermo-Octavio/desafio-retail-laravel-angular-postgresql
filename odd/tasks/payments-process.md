@@ -24,13 +24,21 @@ Fuera de alcance: el Acquirer Mock, el cliente HTTP del adquirente, el endpoint,
 
 | ID | Specs | Ruta | Estado | Evidencia |
 |----|-------|------|--------|-----------|
-| T1 | S1 | inline | pendiente | |
-| T2 | S2 | inline | pendiente | |
-| T3 | S3, S4, S5 | inline | pendiente | |
-| T4 | S6 | inline | pendiente | |
+| T1 | S1 | inline | hecho | a034f30; RED: 9 pruebas fallando |
+| T2 | S2 | inline | hecho | 831557e; RED: 12 pruebas fallando |
+| T3 | S3, S4, S5 | inline | hecho | e71936c; RED: 19 pruebas fallando |
+| T4 | S6 | inline | hecho | fe0630a; RED: 1 prueba fallando |
 
 Ruta inline: tareas secuenciales sobre un mismo flujo; no hay motivo de delegación.
 
 ## Log
 
 - **L1** (2026-10-16) Propuesta aprobada: "sí, implementa en feature/payments-process". Con eso quedaron aprobadas las dos recomendaciones: el presentador como puerto implementado en `Http`, y `ACQUIRER_ERROR` para el `4xx`.
+- **L2** Diseño de T3:
+  - el bucle de intentos vive en `AcquirerAuthorization`, para que `ProcessPayment` no acumule dependencias;
+  - `AcquirerDecision::applyTo()` aplica la decisión en el dominio;
+  - la duración de cada intento se mide con el puerto `Clock`;
+  - los conflictos de idempotencia lanzan `IdempotencyKeyReused` e `IdempotencyKeyInProgress`, que `Http` traducirá a `409`.
+- **L3** Se documentaron `ACQUIRER_ERROR` y `INTEGRATION_ERROR` en `docs/01`, `docs/03` y `docs/04`. `BusinessRules`, `RetryPolicy`, `Sleeper` y `RequestFingerprinter` quedaron enlazados en el contenedor. `PaymentResponsePresenter` y `AcquirerGateway` se enlazan en el paso de `Http` y del cliente del adquirente.
+- **L4** Observación de GGA para el paso siguiente: el adaptador de `AcquirerGateway` solo debe lanzar las dos excepciones del contrato. Si lanza otra, la transacción queda en `PROCESSING` y la clave sin completar.
+- **L5** Verificación local: 236 pruebas aprobadas. Pendientes: el verificador independiente y la revisión RDD.
