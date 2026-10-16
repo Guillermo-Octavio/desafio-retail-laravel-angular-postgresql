@@ -82,7 +82,10 @@ it('logs an unexpected failure as an error', function () {
 
     $line = $this->logs->first('payment.unexpected_error');
     expect($line['level_name'])->toBe('ERROR')
-        ->and($line['extra']['correlation_id'])->toBe('corr-crash');
+        ->and($line['extra']['correlation_id'])->toBe('corr-crash')
+        ->and($line['context']['exception']['class'])->toBe(RuntimeException::class)
+        ->and(array_count_values($this->logs->messages())['payment.unexpected_error'])->toBe(1)
+        ->and($this->logs->lines())->toHaveCount(1);
 });
 
 it('never writes the card number or the CVV in any log line', function () {

@@ -18,7 +18,12 @@
         </include>
     </source>
     <php>
-        <env name="APP_ENV" value="testing"/>
+        <!-- The container sets APP_ENV and LOG_CHANNEL; the tests must not run as local nor
+             write their logs to the container output. -->
+        <server name="APP_ENV" value="testing" force="true"/>
+        <env name="APP_ENV" value="testing" force="true"/>
+        <server name="LOG_CHANNEL" value="null" force="true"/>
+        <env name="LOG_CHANNEL" value="null" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>

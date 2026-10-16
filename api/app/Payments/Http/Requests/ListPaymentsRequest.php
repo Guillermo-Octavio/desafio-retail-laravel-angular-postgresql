@@ -13,6 +13,10 @@ final class ListPaymentsRequest extends FormRequest
 {
     private const int FIRST_PAGE = 1;
 
+    // Keeps the page offset (page × page size) far from the integer limit; no real listing
+    // reaches a million pages.
+    private const int MAX_PAGE = 1_000_000;
+
     /**
      * @return array<string, list<mixed>>
      */
@@ -21,7 +25,7 @@ final class ListPaymentsRequest extends FormRequest
         return [
             'merchant_id' => ['nullable', 'string', 'max:64'],
             'status' => ['nullable', 'string', Rule::enum(TransactionStatus::class)],
-            'page' => ['nullable', 'integer', 'min:1'],
+            'page' => ['nullable', 'integer', 'min:1', 'max:'.self::MAX_PAGE],
             'per_page' => ['nullable', 'integer', 'min:1'],
         ];
     }

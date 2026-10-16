@@ -84,4 +84,13 @@ it('rejects invalid paging values', function (string $query, string $field) {
     ['page=0', 'page'],
     ['per_page=0', 'per_page'],
     ['per_page=abc', 'per_page'],
+    'page so large that the offset overflows' => ['page=9223372036854775807', 'page'],
+    'page above the maximum' => ['page=1000001', 'page'],
 ]);
+
+it('accepts the highest allowed page and answers an empty list', function () {
+    $this->getJson('/api/payments?page=1000000&per_page=100')
+        ->assertOk()
+        ->assertJsonPath('data', [])
+        ->assertJsonPath('meta.current_page', 1000000);
+});
