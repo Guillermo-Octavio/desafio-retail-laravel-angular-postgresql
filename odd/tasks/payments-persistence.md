@@ -49,3 +49,8 @@ Ruta inline: unidades secuenciales que dependen de las migraciones; no hay motiv
   - `ON CONFLICT` sin destino explícito;
   - pérdida de eventos si se reintenta `save()`, ya documentada en L5;
   - clave atascada en `IN_PROGRESS`, limitación conocida en la sección 10 del modelo de dominio.
+- **L12** (2026-10-16) Instrucción del usuario: "ok correige klos hayazgos".
+  - 4d28ddc: el agregado expone `recordedEvents()` y `clearRecordedEvents()`, y el repositorio limpia los eventos solo después del commit, así un reintento de `save()` los guarda. Esto reemplaza el contrato de L5.
+  - fbf0f68: `IdempotencyKeyNotReserved` cuando `attachTransaction()` o `complete()` no encuentran la fila del comercio, o cuando la fila en conflicto no se puede leer (en lugar de `sole()`). Además, `ON CONFLICT (merchant_id, idempotency_key)` acota el conflicto.
+  - RED: 24 pruebas fallando. GREEN: 193 pruebas.
+  - La clave atascada en `IN_PROGRESS` sigue como limitación conocida (sección 10 del modelo de dominio), porque requiere diseñar vencimiento y conciliación.
