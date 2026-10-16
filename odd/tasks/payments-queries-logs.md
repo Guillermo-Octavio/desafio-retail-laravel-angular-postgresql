@@ -61,3 +61,12 @@ Ruta inline: tareas secuenciales; no hay motivo de delegación.
     - la sangría de las líneas de `artisan serve` en el mock;
     - el límite de 8192 bytes por línea de php-fpm.
   - Pasan 390 pruebas.
+- **L6** Revisión RDD de la rama con cuatro lentes: **aprobada** y cerrada.
+- **L7** (2026-10-16) Instrucción del usuario: "corrige esos y luego haz merge a main y push", sobre los hallazgos 1 a 4. Corrección (0571643):
+  - el reporte de errores inesperados pasa a `Shared` con el nombre `unexpected_error`, porque aplica a toda la aplicación (sección 7.2 actualizada);
+  - `idempotency.replayed` se registra después de confirmar que existe la respuesta guardada;
+  - prueba de un UUID v7 válido que no existe;
+  - el log de cada intento usa `if` en lugar de ternarios;
+  - `TransactionId` valida en un solo método.
+
+  RED: 1 prueba fallando (el nombre del evento). La paginación por offset quedó documentada como limitación en la sección 4.2 de la arquitectura, con keyset como evolución. Pasan 391 pruebas.
