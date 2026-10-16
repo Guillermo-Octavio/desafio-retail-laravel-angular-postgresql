@@ -154,8 +154,9 @@ Un `amount` con decimales (`10.50`) o enviado como texto (`"1050"`) es un error 
 | 500 | `INTERNAL_ERROR` | Fallo inesperado; no se exponen detalles internos. |
 
 Motivos de rechazo o fallo que se guardan en la transacción: `AMOUNT_LIMIT_EXCEEDED`,
-`INVALID_CARD_NUMBER`, `CARD_EXPIRED`, `INSUFFICIENT_FUNDS` (informado por el adquirente) y
-`ACQUIRER_UNAVAILABLE`.
+`INVALID_CARD_NUMBER`, `CARD_EXPIRED`, `INSUFFICIENT_FUNDS` (informado por el adquirente),
+`ACQUIRER_UNAVAILABLE` (errores temporales agotados) y `ACQUIRER_ERROR` (el adquirente rechaza la
+integración con un `4xx`).
 
 ## 9. Fuera de alcance
 

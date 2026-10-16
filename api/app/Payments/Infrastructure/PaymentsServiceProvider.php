@@ -11,6 +11,8 @@ use App\Payments\Domain\Ports\Clock;
 use App\Payments\Domain\Ports\IdempotencyStore;
 use App\Payments\Domain\Ports\TransactionIdGenerator;
 use App\Payments\Domain\Ports\TransactionRepository;
+use App\Payments\Domain\Rules\AmountLimits;
+use App\Payments\Domain\Rules\BusinessRules;
 use App\Payments\Infrastructure\Persistence\EloquentTransactionRepository;
 use App\Payments\Infrastructure\Persistence\PostgresIdempotencyStore;
 use Illuminate\Support\ServiceProvider;
@@ -36,6 +38,11 @@ final class PaymentsServiceProvider extends ServiceProvider
             (int) config('payments.acquirer.initial_backoff_ms'),
             (int) config('payments.acquirer.max_jitter_ms'),
             new Randomizer,
+        ));
+
+        $this->app->singleton(BusinessRules::class, fn ($app) => BusinessRules::standard(
+            $app->make(Clock::class),
+            new AmountLimits(config('payments.amount_limits')),
         ));
 
         $this->app->singleton(RequestFingerprinter::class, fn () => new HmacRequestFingerprinter(

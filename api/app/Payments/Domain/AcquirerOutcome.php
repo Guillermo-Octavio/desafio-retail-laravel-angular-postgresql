@@ -9,4 +9,5 @@ enum AcquirerOutcome: string
     case APPROVED = 'APPROVED';
     case DECLINED = 'DECLINED';
     case TEMPORARY_ERROR = 'TEMPORARY_ERROR';
+    case INTEGRATION_ERROR = 'INTEGRATION_ERROR';
 }

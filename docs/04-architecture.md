@@ -194,7 +194,7 @@ repositorio, sin efectos secundarios. El detalle incluye los eventos en orden (H
 | `200` | `{"status": "DECLINED", "reason": "INSUFFICIENT_FUNDS"}` | Rechazo definitivo; no se reintenta. |
 | `503` | `{"error": "TEMPORARY_UNAVAILABLE"}` | Error temporal; se reintenta. |
 | Timeout o fallo de conexión | | Error temporal; se reintenta. |
-| Cualquier otro `4xx` | | Error de integración: `FAILED` sin reintentar y log de nivel `error`. |
+| Cualquier otro `4xx` | | Error de integración: `FAILED` con `ACQUIRER_ERROR`, sin reintentar, y log de nivel `error`. |
 
 El comportamiento depende de la tarjeta de prueba (ver
 [tarjetas de prueba](01-requirements-analysis.md#7-tarjetas-de-prueba-del-acquirer-mock)). Para

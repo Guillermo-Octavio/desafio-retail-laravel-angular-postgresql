@@ -6,6 +6,8 @@ namespace App\Payments\Domain\Acquirer;
 
 use App\Payments\Domain\AcquirerOutcome;
 use App\Payments\Domain\DeclineReason;
+use App\Payments\Domain\Transaction;
+use DateTimeImmutable;
 
 /**
  * A definitive answer from the acquirer: it is never retried.
@@ -26,5 +28,16 @@ final readonly class AcquirerDecision
     public static function declined(DeclineReason $reason): self
     {
         return new self(AcquirerOutcome::DECLINED, null, $reason);
+    }
+
+    public function applyTo(Transaction $transaction, DateTimeImmutable $occurredAt): void
+    {
+        if ($this->declineReason !== null) {
+            $transaction->decline($this->declineReason, $occurredAt);
+
+            return;
+        }
+
+        $transaction->approve((string) $this->authorizationReference, $occurredAt);
     }
 }

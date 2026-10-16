@@ -77,6 +77,7 @@ classDiagram
         CARD_EXPIRED
         INSUFFICIENT_FUNDS
         ACQUIRER_UNAVAILABLE
+        ACQUIRER_ERROR
     }
     class TransactionEvent {
         <<Entity>>
@@ -203,6 +204,7 @@ El dominio define el contrato que necesita y no depende de cómo se implementa e
 | Respuesta `Approved` | Incluye la referencia de autorización. Es definitiva. |
 | Respuesta `Declined` | Incluye el motivo (por ejemplo, `INSUFFICIENT_FUNDS`). Es definitiva y no se reintenta. |
 | Error temporal | Timeout, error `5xx` o fallo de conexión. Es el único caso que se reintenta (SUP-10). |
+| Error de integración | Cualquier otro `4xx`. No se reintenta, porque la misma solicitud volvería a fallar; la transacción termina en `FAILED` con `ACQUIRER_ERROR`. |
 
 ```mermaid
 sequenceDiagram
@@ -211,13 +213,15 @@ sequenceDiagram
     T->>T: startProcessing
     loop Hasta 3 intentos mientras haya error temporal
         T->>A: authorize
-        A-->>T: Approved, Declined o error temporal
+        A-->>T: Approved, Declined, error temporal o error de integración
         T->>T: recordAcquirerAttempt
     end
     alt Approved
         T->>T: approve
     else Declined
         T->>T: decline
+    else Error de integración
+        T->>T: fail con ACQUIRER_ERROR
     else Intentos agotados
         T->>T: fail con ACQUIRER_UNAVAILABLE
     end
@@ -231,7 +235,7 @@ hora con precisión de microsegundos.
 | Tipo | Cuándo | Datos propios |
 |------|--------|---------------|
 | `STATUS_CHANGED` | En cada cambio de estado, incluida la creación. | `from_status` (nulo al crear), `to_status` y `reason` cuando corresponde. |
-| `ACQUIRER_ATTEMPT` | Después de cada llamada al adquirente. | En `metadata`: `attempt`, `outcome` (`APPROVED`, `DECLINED`, `TEMPORARY_ERROR`), `duration_ms` y `error_code` cuando corresponde. |
+| `ACQUIRER_ATTEMPT` | Después de cada llamada al adquirente. | En `metadata`: `attempt`, `outcome` (`APPROVED`, `DECLINED`, `TEMPORARY_ERROR`, `INTEGRATION_ERROR`), `duration_ms` y `error_code` cuando corresponde. |
 
 Ejemplo del historial de un pago que necesitó un reintento (HU-09):
 

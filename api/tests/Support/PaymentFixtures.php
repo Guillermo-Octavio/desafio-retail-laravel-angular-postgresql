@@ -13,6 +13,7 @@ use App\Payments\Domain\Card\Cvv;
 use App\Payments\Domain\Card\MaskedCard;
 use App\Payments\Domain\CorrelationId;
 use App\Payments\Domain\Currency;
+use App\Payments\Domain\EventType;
 use App\Payments\Domain\Idempotency\IdempotencyKey;
 use App\Payments\Domain\Idempotency\RequestFingerprint;
 use App\Payments\Domain\MerchantId;
@@ -117,5 +118,19 @@ final class PaymentFixtures
             'reason' => $event->reason,
             'metadata' => $event->metadata,
         ], $events);
+    }
+
+    /**
+     * Metadata of the acquirer attempts among the given events, in order.
+     *
+     * @param  list<TransactionEvent>  $events
+     * @return list<array<string, int|string>>
+     */
+    public static function acquirerAttempts(array $events): array
+    {
+        return array_values(array_map(
+            fn (TransactionEvent $event) => $event->metadata,
+            array_filter($events, fn (TransactionEvent $event) => $event->type === EventType::ACQUIRER_ATTEMPT),
+        ));
     }
 }
