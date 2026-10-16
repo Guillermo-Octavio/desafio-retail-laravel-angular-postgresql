@@ -23,6 +23,7 @@ use Tests\Support\Fakes\InMemoryTransactionRepository;
 use Tests\Support\Fakes\RecordingSleeper;
 use Tests\Support\Fakes\ScriptedAcquirerGateway;
 use Tests\Support\Fakes\SequentialTransactionIdGenerator;
+use Tests\Support\Fakes\SteppingTimer;
 use Tests\Support\PaymentFixtures;
 use Tests\Support\SteppingClock;
 
@@ -31,6 +32,7 @@ beforeEach(function () {
     $this->idempotency = new InMemoryIdempotencyStore;
     $this->sleeper = new RecordingSleeper;
     $this->clock = new SteppingClock('2026-10-15 12:00:00', 5);
+    $this->timer = new SteppingTimer(5);
 
     $this->processPayment = function (ScriptedAcquirerGateway $gateway): ProcessPayment {
         $rules = BusinessRules::standard($this->clock, new AmountLimits(['CLP' => 5000000, 'USD' => 500000]));
@@ -39,6 +41,7 @@ beforeEach(function () {
             new RetryPolicy(3, 200, 0, PaymentFixtures::seededRandomizer()),
             $this->sleeper,
             $this->clock,
+            $this->timer,
             $this->transactions,
         );
 
@@ -237,4 +240,16 @@ it('accepts amounts in USD cents', function () {
 
     expect($result->response->body['status'])->toBe('APPROVED')
         ->and($gateway->requests[0]->money->currency)->toBe(Currency::USD);
+});
+
+it('measures attempt durations with a monotonic timer, unaffected by wall clock changes', function () {
+    $this->clock = new SteppingClock('2026-10-15 12:00:00', -1000);
+    $this->timer = new SteppingTimer(85);
+    $gateway = new ScriptedAcquirerGateway(AcquirerDecision::approved('A1B2C3'));
+
+    ($this->processPayment)($gateway)->execute(PaymentFixtures::command());
+
+    expect(PaymentFixtures::acquirerAttempts($this->transactions->events))->toBe([
+        ['attempt' => 1, 'outcome' => 'APPROVED', 'duration_ms' => 85],
+    ]);
 });

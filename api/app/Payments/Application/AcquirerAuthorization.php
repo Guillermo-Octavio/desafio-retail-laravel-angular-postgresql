@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Payments\Application;
 
+use App\Payments\Application\Ports\MonotonicTimer;
 use App\Payments\Application\Ports\Sleeper;
 use App\Payments\Domain\Acquirer\AcquirerRequest;
 use App\Payments\Domain\AcquirerOutcome;
@@ -14,7 +15,6 @@ use App\Payments\Domain\Ports\AcquirerGateway;
 use App\Payments\Domain\Ports\Clock;
 use App\Payments\Domain\Ports\TransactionRepository;
 use App\Payments\Domain\Transaction;
-use DateTimeImmutable;
 
 /**
  * Calls the acquirer for a PROCESSING transaction until it gets a final answer. The retry loop
@@ -22,13 +22,14 @@ use DateTimeImmutable;
  */
 final readonly class AcquirerAuthorization
 {
-    private const int MICROSECONDS_PER_MILLISECOND = 1000;
+    private const int NANOSECONDS_PER_MILLISECOND = 1_000_000;
 
     public function __construct(
         private AcquirerGateway $gateway,
         private RetryPolicy $retryPolicy,
         private Sleeper $sleeper,
         private Clock $clock,
+        private MonotonicTimer $timer,
         private TransactionRepository $transactions,
     ) {}
 
@@ -53,7 +54,7 @@ final readonly class AcquirerAuthorization
             $this->sleeper->sleepMilliseconds($this->retryPolicy->backoffBeforeAttempt($attempt));
         }
 
-        $startedAt = $this->clock->now();
+        $startedAt = $this->timer->nanoseconds();
 
         try {
             $decision = $this->gateway->authorize($request);
@@ -81,18 +82,17 @@ final readonly class AcquirerAuthorization
         Transaction $transaction,
         int $attempt,
         AcquirerOutcome $outcome,
-        DateTimeImmutable $startedAt,
+        int $startedAt,
         ?string $errorCode,
     ): void {
-        $finishedAt = $this->clock->now();
-        $elapsedMicroseconds = (int) $finishedAt->format('Uu') - (int) $startedAt->format('Uu');
+        $elapsedNanoseconds = $this->timer->nanoseconds() - $startedAt;
 
         $transaction->recordAcquirerAttempt(
             $attempt,
             $outcome,
-            intdiv($elapsedMicroseconds, self::MICROSECONDS_PER_MILLISECOND),
+            intdiv($elapsedNanoseconds, self::NANOSECONDS_PER_MILLISECOND),
             $errorCode,
-            $finishedAt,
+            $this->clock->now(),
         );
     }
 }

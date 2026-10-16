@@ -2,12 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Payments\Application\Ports\MonotonicTimer;
 use App\Payments\Application\Ports\RequestFingerprinter;
 use App\Payments\Domain\Ports\Clock;
 use App\Payments\Domain\Ports\IdempotencyStore;
 use App\Payments\Domain\Ports\TransactionIdGenerator;
 use App\Payments\Domain\Ports\TransactionRepository;
 use App\Payments\Infrastructure\HmacRequestFingerprinter;
+use App\Payments\Infrastructure\HrtimeMonotonicTimer;
 use App\Payments\Infrastructure\Persistence\EloquentTransactionRepository;
 use App\Payments\Infrastructure\Persistence\PostgresIdempotencyStore;
 use App\Payments\Infrastructure\SystemClock;
@@ -22,6 +24,7 @@ it('binds each payments port to its adapter', function (string $port, string $ad
     'transaction repository' => [TransactionRepository::class, EloquentTransactionRepository::class],
     'idempotency store' => [IdempotencyStore::class, PostgresIdempotencyStore::class],
     'request fingerprinter' => [RequestFingerprinter::class, HmacRequestFingerprinter::class],
+    'monotonic timer' => [MonotonicTimer::class, HrtimeMonotonicTimer::class],
 ]);
 
 it('tells the current time in UTC with microseconds', function () {
@@ -43,4 +46,12 @@ it('generates distinct time-ordered UUID v7 transaction ids', function () {
 
     expect($first->equals($second))->toBeFalse()
         ->and(strcmp($first->value, $second->value))->toBeLessThan(0);
+});
+
+it('reads a monotonic time that never goes backwards', function () {
+    $timer = app(MonotonicTimer::class);
+
+    $first = $timer->nanoseconds();
+
+    expect($timer->nanoseconds())->toBeGreaterThanOrEqual($first);
 });

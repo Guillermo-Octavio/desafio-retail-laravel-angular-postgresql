@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Payments\Infrastructure;
 
+use App\Payments\Application\Ports\MonotonicTimer;
 use App\Payments\Application\Ports\RequestFingerprinter;
 use App\Payments\Application\Ports\Sleeper;
 use App\Payments\Application\RetryPolicy;
@@ -29,6 +30,7 @@ final class PaymentsServiceProvider extends ServiceProvider
         TransactionRepository::class => EloquentTransactionRepository::class,
         IdempotencyStore::class => PostgresIdempotencyStore::class,
         Sleeper::class => SleepSleeper::class,
+        MonotonicTimer::class => HrtimeMonotonicTimer::class,
     ];
 
     public function register(): void
