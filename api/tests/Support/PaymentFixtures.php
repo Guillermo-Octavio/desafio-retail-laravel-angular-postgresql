@@ -12,6 +12,7 @@ use App\Payments\Domain\Card\Cvv;
 use App\Payments\Domain\Card\MaskedCard;
 use App\Payments\Domain\CorrelationId;
 use App\Payments\Domain\Currency;
+use App\Payments\Domain\Idempotency\RequestFingerprint;
 use App\Payments\Domain\MerchantId;
 use App\Payments\Domain\Money;
 use App\Payments\Domain\PaymentRequest;
@@ -44,6 +45,11 @@ final class PaymentFixtures
             new Money($amount, $currency),
             new CardDetails(new CardNumber($cardNumber), new CardExpiry($expiryMonth, $expiryYear), new Cvv('123')),
         );
+    }
+
+    public static function fingerprint(string $hexCharacter): RequestFingerprint
+    {
+        return new RequestFingerprint(str_repeat($hexCharacter, 64));
     }
 
     public static function newTransaction(): Transaction
