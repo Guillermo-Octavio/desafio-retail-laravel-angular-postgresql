@@ -7,6 +7,7 @@ namespace App\Payments\Domain\Rules;
 use App\Payments\Domain\DeclineReason;
 use App\Payments\Domain\PaymentRequest;
 use App\Payments\Domain\Ports\Clock;
+use DateTimeZone;
 
 /**
  * Evaluates the rules in order and stops at the first one that fails (DD-07).
@@ -21,11 +22,11 @@ final readonly class BusinessRules
         $this->rules = array_values($rules);
     }
 
-    public static function standard(Clock $clock, AmountLimits $limits): self
+    public static function standard(Clock $clock, DateTimeZone $businessTimezone, AmountLimits $limits): self
     {
         return new self(
             new ValidCardNumberRule,
-            new CardNotExpiredRule($clock),
+            new CardNotExpiredRule($clock, $businessTimezone),
             new AmountWithinLimitRule($limits),
         );
     }

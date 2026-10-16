@@ -22,6 +22,7 @@ use App\Payments\Infrastructure\Logging\LaravelLogContext;
 use App\Payments\Infrastructure\Persistence\EloquentTransactionQueries;
 use App\Payments\Infrastructure\Persistence\EloquentTransactionRepository;
 use App\Payments\Infrastructure\Persistence\PostgresIdempotencyStore;
+use DateTimeZone;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\ServiceProvider;
 use Random\Randomizer;
@@ -53,6 +54,7 @@ final class PaymentsServiceProvider extends ServiceProvider
 
         $this->app->singleton(BusinessRules::class, fn ($app) => BusinessRules::standard(
             $app->make(Clock::class),
+            new DateTimeZone((string) config('payments.business_timezone')),
             new AmountLimits(config('payments.amount_limits')),
         ));
 

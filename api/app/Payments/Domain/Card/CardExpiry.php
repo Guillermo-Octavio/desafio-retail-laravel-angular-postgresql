@@ -30,11 +30,12 @@ final readonly class CardExpiry
     }
 
     /**
-     * A card stays valid until the last day of its expiry month, evaluated in UTC (DD-06).
+     * A card stays valid until the last day of its expiry month, evaluated in the business
+     * timezone, so the month ends when it ends for the merchant (DD-06).
      */
-    public function isExpiredAt(DateTimeImmutable $now): bool
+    public function isExpiredAt(DateTimeImmutable $now, DateTimeZone $businessTimezone): bool
     {
-        $today = $now->setTimezone(new DateTimeZone('UTC'));
+        $today = $now->setTimezone($businessTimezone);
         $currentMonthIndex = (int) $today->format('Y') * self::MONTHS_PER_YEAR + (int) $today->format('n');
 
         return $this->year * self::MONTHS_PER_YEAR + $this->month < $currentMonthIndex;

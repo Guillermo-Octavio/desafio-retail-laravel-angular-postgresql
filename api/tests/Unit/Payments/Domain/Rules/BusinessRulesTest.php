@@ -23,7 +23,7 @@ it('declines a card number that fails the Luhn check', function () {
 });
 
 it('declines a card that expired before the current month', function (int $month, int $year, ?DeclineReason $reason) {
-    $rule = new CardNotExpiredRule(new FixedClock('2026-10-15 12:00:00'));
+    $rule = new CardNotExpiredRule(new FixedClock('2026-10-15 12:00:00'), new DateTimeZone('America/Santiago'));
 
     expect($rule->check(PaymentFixtures::paymentRequest(expiryMonth: $month, expiryYear: $year)))->toBe($reason);
 })->with([
@@ -53,7 +53,7 @@ it('requires a positive limit for every supported currency', function (array $li
 ])->throws(InvalidAmountLimits::class);
 
 it('applies the standard rules in order: card number, expiry, amount', function (PaymentRequest $payment, ?DeclineReason $reason) {
-    expect(BusinessRules::standard(new FixedClock('2026-10-15 12:00:00'), new AmountLimits(['CLP' => 5000000, 'USD' => 500000]))->firstViolation($payment))->toBe($reason);
+    expect(BusinessRules::standard(new FixedClock('2026-10-15 12:00:00'), new DateTimeZone('America/Santiago'), new AmountLimits(['CLP' => 5000000, 'USD' => 500000]))->firstViolation($payment))->toBe($reason);
 })->with([
     'all rules fail' => fn () => [PaymentFixtures::paymentRequest(amount: 5000001, cardNumber: PaymentFixtures::LUHN_INVALID_CARD, expiryMonth: 9, expiryYear: 2026), DeclineReason::INVALID_CARD_NUMBER],
     'expiry and amount fail' => fn () => [PaymentFixtures::paymentRequest(amount: 5000001, expiryMonth: 9, expiryYear: 2026), DeclineReason::CARD_EXPIRED],
@@ -78,4 +78,10 @@ it('stops at the first rule that fails', function () {
 
     expect($rules->firstViolation(PaymentFixtures::paymentRequest(cardNumber: PaymentFixtures::LUHN_INVALID_CARD)))->toBe(DeclineReason::INVALID_CARD_NUMBER)
         ->and($neverReached->checked)->toBeFalse();
+});
+
+it('accepts a card on the last evening of its expiry month in Santiago, already the next month in UTC', function () {
+    $rule = new CardNotExpiredRule(new FixedClock('2026-11-01 01:00:00'), new DateTimeZone('America/Santiago'));
+
+    expect($rule->check(PaymentFixtures::paymentRequest(expiryMonth: 10, expiryYear: 2026)))->toBeNull();
 });

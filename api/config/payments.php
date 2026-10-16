@@ -3,6 +3,12 @@
 return [
 
     /*
+    | The timezone of the business: card expiry is evaluated in it and the API shows dates in it.
+    | Storage and logs stay in UTC.
+    */
+    'business_timezone' => env('PAYMENTS_BUSINESS_TIMEZONE', 'America/Santiago'),
+
+    /*
     | Maximum amount per currency, in minor units (SUP-04).
     */
     'amount_limits' => [

@@ -6,6 +6,7 @@ use App\Payments\Application\Ports\Sleeper;
 use App\Payments\Application\RetryPolicy;
 use App\Payments\Domain\DeclineReason;
 use App\Payments\Domain\Rules\BusinessRules;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Sleep;
 use Tests\Support\PaymentFixtures;
 
@@ -34,4 +35,20 @@ it('builds the business rules with the configured amount limits', function () {
 
     expect($rules->firstViolation(PaymentFixtures::paymentRequest(amount: 1000)))->toBeNull()
         ->and($rules->firstViolation(PaymentFixtures::paymentRequest(amount: 1001)))->toBe(DeclineReason::AMOUNT_LIMIT_EXCEEDED);
+});
+
+it('uses America/Santiago as the business timezone by default', function () {
+    expect(config('payments.business_timezone'))->toBe('America/Santiago');
+});
+
+it('evaluates card expiry in the configured business timezone', function () {
+    Carbon::setTestNow('2026-11-01 01:00:00');
+
+    $santiago = app(BusinessRules::class)->firstViolation(PaymentFixtures::paymentRequest(expiryMonth: 10, expiryYear: 2026));
+    app()->forgetInstance(BusinessRules::class);
+    config(['payments.business_timezone' => 'UTC']);
+    $utc = app(BusinessRules::class)->firstViolation(PaymentFixtures::paymentRequest(expiryMonth: 10, expiryYear: 2026));
+
+    expect($santiago)->toBeNull()
+        ->and($utc)->toBe(DeclineReason::CARD_EXPIRED);
 });

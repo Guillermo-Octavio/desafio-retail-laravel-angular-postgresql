@@ -38,7 +38,7 @@ beforeEach(function () {
     $this->timer = new SteppingTimer(5);
 
     $this->processPayment = function (ScriptedAcquirerGateway $gateway): ProcessPayment {
-        $rules = BusinessRules::standard($this->clock, new AmountLimits(['CLP' => 5000000, 'USD' => 500000]));
+        $rules = BusinessRules::standard($this->clock, new DateTimeZone('America/Santiago'), new AmountLimits(['CLP' => 5000000, 'USD' => 500000]));
         $authorization = new AcquirerAuthorization(
             $gateway,
             new RetryPolicy(3, 200, 0, PaymentFixtures::seededRandomizer()),
