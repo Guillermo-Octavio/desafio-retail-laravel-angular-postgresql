@@ -129,8 +129,9 @@ final readonly class ProcessPayment
 
     private function replay(IdempotencyReservation $reservation): PaymentResponse
     {
+        $storedResponse = $reservation->storedResponse ?? $this->conflict('in_progress', IdempotencyKeyInProgress::create());
         $this->logger->info('idempotency.replayed');
 
-        return PaymentResponse::replayed($reservation->storedResponse ?? throw IdempotencyKeyInProgress::create());
+        return PaymentResponse::replayed($storedResponse);
     }
 }

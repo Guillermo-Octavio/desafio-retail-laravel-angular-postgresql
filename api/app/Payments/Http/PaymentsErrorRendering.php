@@ -13,8 +13,6 @@ use App\Shared\Http\ErrorResponse;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Throwable;
 
 /**
  * Maps the payments errors to the API error codes (requirements analysis, section 8).
@@ -25,11 +23,6 @@ final class PaymentsErrorRendering
     {
         // Expected client errors: they are answered with a 4xx and are not application failures.
         $exceptions->dontReport([MissingIdempotencyKey::class, IdempotencyKeyReused::class, IdempotencyKeyInProgress::class, TransactionNotFound::class]);
-
-        // One named event for every unexpected failure (architecture section 7.2).
-        $exceptions->report(function (Throwable $error): void {
-            Log::error('payment.unexpected_error', ['exception' => $error]);
-        })->stop();
 
         $exceptions->render(fn (MissingIdempotencyKey $error, Request $request): ?JsonResponse => ApiErrorRendering::forApi($request, fn () => ErrorResponse::make(
             JsonResponse::HTTP_BAD_REQUEST,

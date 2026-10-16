@@ -75,16 +75,16 @@ it('logs which fields failed validation without their values', function () {
         ->and($this->logs->raw())->not->toContain('"4111"');
 });
 
-it('logs an unexpected failure as an error', function () {
+it('logs an unexpected failure of any module as one error line', function () {
     Route::middleware('api')->get('api/test-logs/crash', fn () => throw new RuntimeException('boom'));
 
     $this->getJson('/api/test-logs/crash', ['X-Correlation-Id' => 'corr-crash'])->assertStatus(500);
 
-    $line = $this->logs->first('payment.unexpected_error');
+    $line = $this->logs->first('unexpected_error');
     expect($line['level_name'])->toBe('ERROR')
         ->and($line['extra']['correlation_id'])->toBe('corr-crash')
         ->and($line['context']['exception']['class'])->toBe(RuntimeException::class)
-        ->and(array_count_values($this->logs->messages())['payment.unexpected_error'])->toBe(1)
+        ->and(array_count_values($this->logs->messages())['unexpected_error'])->toBe(1)
         ->and($this->logs->lines())->toHaveCount(1);
 });
 

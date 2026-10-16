@@ -45,6 +45,7 @@ it('answers TRANSACTION_NOT_FOUND for an unknown or malformed id', function (str
         ->assertNotFound()
         ->assertExactJson(['error' => ['code' => 'TRANSACTION_NOT_FOUND', 'message' => 'The transaction was not found.']]);
 })->with([
-    'unknown' => ['00000000-0000-0000-0000-000000000000'],
+    'valid UUID v7 that does not exist' => ['0199f0c2-6a1e-7c3a-9b2f-5d1e8a4c7b10'],
+    'nil UUID' => ['00000000-0000-0000-0000-000000000000'],
     'not a UUID' => ['no-es-un-uuid'],
 ]);

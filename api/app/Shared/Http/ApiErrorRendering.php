@@ -8,6 +8,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -28,6 +29,13 @@ final class ApiErrorRendering
 
     public static function register(Exceptions $exceptions): void
     {
+        // Every module reports its unexpected failures as one named event (architecture 7.2).
+        // It replaces the default report; the JSON formatter keeps the exception class and
+        // message without the stack trace.
+        $exceptions->report(function (Throwable $error): void {
+            Log::error('unexpected_error', ['exception' => $error]);
+        })->stop();
+
         $exceptions->render(fn (ValidationException $error, Request $request): ?JsonResponse => self::forApi($request, fn () => ErrorResponse::make(
             JsonResponse::HTTP_UNPROCESSABLE_ENTITY,
             'VALIDATION_ERROR',

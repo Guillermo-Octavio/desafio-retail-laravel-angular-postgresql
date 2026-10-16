@@ -92,7 +92,13 @@ final readonly class AcquirerAuthorization
         $transaction->recordAcquirerAttempt($attempt, $outcome, $durationMs, $errorCode, $this->clock->now());
 
         $context = ['attempt' => $attempt, 'outcome' => $outcome->value, 'duration_ms' => $durationMs];
-        $isError = $errorCode !== null;
-        $this->logger->log($isError ? 'warning' : 'info', 'acquirer.attempt', $isError ? [...$context, 'error_code' => $errorCode] : $context);
+
+        if ($errorCode === null) {
+            $this->logger->info('acquirer.attempt', $context);
+
+            return;
+        }
+
+        $this->logger->warning('acquirer.attempt', [...$context, 'error_code' => $errorCode]);
     }
 }

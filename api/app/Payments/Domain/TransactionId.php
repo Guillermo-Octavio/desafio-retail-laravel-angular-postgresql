@@ -17,13 +17,11 @@ final readonly class TransactionId
 
     public function __construct(string $value)
     {
-        $normalized = strtolower($value);
-
-        if (preg_match(self::UUID_V7_FORMAT, $normalized) !== 1) {
+        if (! self::isUuidV7($value)) {
             throw InvalidTransactionId::notUuidV7($value);
         }
 
-        $this->value = $normalized;
+        $this->value = strtolower($value);
     }
 
     /**
@@ -31,7 +29,12 @@ final readonly class TransactionId
      */
     public static function tryFrom(string $value): ?self
     {
-        return preg_match(self::UUID_V7_FORMAT, strtolower($value)) === 1 ? new self($value) : null;
+        return self::isUuidV7($value) ? new self($value) : null;
+    }
+
+    private static function isUuidV7(string $value): bool
+    {
+        return preg_match(self::UUID_V7_FORMAT, strtolower($value)) === 1;
     }
 
     public function equals(self $other): bool

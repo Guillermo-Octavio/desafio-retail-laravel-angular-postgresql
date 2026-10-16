@@ -167,6 +167,11 @@ Ninguna transacción de base de datos queda abierta durante la llamada HTTP al a
 `GET /api/payments/{transaction_id}` y `GET /api/payments` son lecturas directas mediante el
 repositorio, sin efectos secundarios. El detalle incluye los eventos en orden (HU-09).
 
+El listado pagina por desplazamiento (`OFFSET`), con un máximo de 1.000.000 de páginas para que
+el cálculo no desborde. Una página muy profunda obliga a la base a recorrer todas las filas
+anteriores. Es una limitación conocida: con grandes volúmenes se pasaría a paginación por cursor
+(keyset) sobre `(created_at, id)`, que cambia el contrato de la API.
+
 ## 5. Integración con el adquirente
 
 ### 5.1 Contrato HTTP del Acquirer Mock
@@ -283,7 +288,7 @@ principales:
 | `transaction.declined_by_rule` | `info` | Una política rechaza la transacción. |
 | `acquirer.attempt` | `info` o `warning` | Resultado de cada intento, con duración. |
 | `transaction.finalized` | `info` | Estado final alcanzado. |
-| `payment.unexpected_error` | `error` | Excepción no controlada. |
+| `unexpected_error` | `error` | Excepción no controlada de cualquier módulo, incluido el Acquirer Mock. Reemplaza el reporte por defecto; incluye la clase y el mensaje de la excepción, sin la traza. |
 
 Nunca se registran el número de tarjeta ni el CVV (HU-11). Una prueba verifica que no aparezcan
 en los logs.
