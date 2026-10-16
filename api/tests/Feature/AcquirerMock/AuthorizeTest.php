@@ -6,6 +6,7 @@ use App\AcquirerMock\AcquirerMockServiceProvider;
 use App\AcquirerMock\Http\AuthorizeRequest;
 use Illuminate\Support\Facades\Validator;
 use Tests\Support\AcquirerMockRequests;
+use Tests\Support\CapturedLogs;
 
 beforeEach(function () {
     config(['acquirer_mock.enabled' => true]);
@@ -60,3 +61,14 @@ it('rejects card formats that end with a line feed at the validation rules', fun
     ['card.number', "4111111111111111\n"],
     ['card.cvv', "123\n"],
 ]);
+
+it('logs each authorization with the correlation id and without card data', function () {
+    $logs = CapturedLogs::install();
+
+    $this->postJson('/acquirer/authorize', AcquirerMockRequests::authorization('4000000000000002'), ['X-Correlation-Id' => 'corr-mock']);
+
+    $line = $logs->first('acquirer_mock.authorized');
+    expect($line['extra']['correlation_id'])->toBe('corr-mock')
+        ->and($line['context'])->toBe(['transaction_id' => '0199f0c2-6a1e-7c3a-9b2f-5d1e8a4c7b10', 'status_code' => 200])
+        ->and($logs->raw())->not->toContain('4000000000000002');
+});

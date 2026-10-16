@@ -16,8 +16,10 @@ use App\Payments\Domain\MerchantId;
 use App\Payments\Domain\Money;
 use App\Payments\Http\Middleware\RequireIdempotencyKey;
 use App\Shared\Http\Middleware\AssignCorrelationId;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Context;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 /**
@@ -59,6 +61,16 @@ final class CreatePaymentRequest extends FormRequest
             'card.expiry_year' => ['required', 'integer:strict', 'between:1000,9999'],
             'card.cvv' => ['required', 'string', 'regex:'.Cvv::FORMAT],
         ];
+    }
+
+    /**
+     * Logs only the names of the invalid fields: their values may be card data.
+     */
+    protected function failedValidation(Validator $validator): void
+    {
+        Log::info('payment.validation_failed', ['fields' => array_keys($validator->errors()->messages())]);
+
+        parent::failedValidation($validator);
     }
 
     public function toCommand(): ProcessPaymentCommand

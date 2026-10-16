@@ -15,6 +15,7 @@ use App\Payments\Domain\Ports\AcquirerGateway;
 use App\Payments\Domain\Ports\Clock;
 use App\Payments\Domain\Ports\TransactionRepository;
 use App\Payments\Domain\Transaction;
+use Psr\Log\LoggerInterface;
 
 /**
  * Calls the acquirer for a PROCESSING transaction until it gets a final answer. The retry loop
@@ -31,6 +32,7 @@ final readonly class AcquirerAuthorization
         private Clock $clock,
         private MonotonicTimer $timer,
         private TransactionRepository $transactions,
+        private LoggerInterface $logger,
     ) {}
 
     public function authorize(Transaction $transaction, AcquirerRequest $request): void
@@ -85,14 +87,12 @@ final readonly class AcquirerAuthorization
         int $startedAt,
         ?string $errorCode,
     ): void {
-        $elapsedNanoseconds = $this->timer->nanoseconds() - $startedAt;
+        $durationMs = intdiv($this->timer->nanoseconds() - $startedAt, self::NANOSECONDS_PER_MILLISECOND);
 
-        $transaction->recordAcquirerAttempt(
-            $attempt,
-            $outcome,
-            intdiv($elapsedNanoseconds, self::NANOSECONDS_PER_MILLISECOND),
-            $errorCode,
-            $this->clock->now(),
-        );
+        $transaction->recordAcquirerAttempt($attempt, $outcome, $durationMs, $errorCode, $this->clock->now());
+
+        $context = ['attempt' => $attempt, 'outcome' => $outcome->value, 'duration_ms' => $durationMs];
+        $isError = $errorCode !== null;
+        $this->logger->log($isError ? 'warning' : 'info', 'acquirer.attempt', $isError ? [...$context, 'error_code' => $errorCode] : $context);
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Payments\Infrastructure;
 
+use App\Payments\Application\Ports\LogContext;
 use App\Payments\Application\Ports\MonotonicTimer;
 use App\Payments\Application\Ports\RequestFingerprinter;
 use App\Payments\Application\Ports\Sleeper;
@@ -17,6 +18,7 @@ use App\Payments\Domain\Ports\TransactionRepository;
 use App\Payments\Domain\Rules\AmountLimits;
 use App\Payments\Domain\Rules\BusinessRules;
 use App\Payments\Infrastructure\Acquirer\HttpAcquirerGateway;
+use App\Payments\Infrastructure\Logging\LaravelLogContext;
 use App\Payments\Infrastructure\Persistence\EloquentTransactionQueries;
 use App\Payments\Infrastructure\Persistence\EloquentTransactionRepository;
 use App\Payments\Infrastructure\Persistence\PostgresIdempotencyStore;
@@ -35,6 +37,7 @@ final class PaymentsServiceProvider extends ServiceProvider
         TransactionRepository::class => EloquentTransactionRepository::class,
         IdempotencyStore::class => PostgresIdempotencyStore::class,
         TransactionQueries::class => EloquentTransactionQueries::class,
+        LogContext::class => LaravelLogContext::class,
         Sleeper::class => SleepSleeper::class,
         MonotonicTimer::class => HrtimeMonotonicTimer::class,
     ];

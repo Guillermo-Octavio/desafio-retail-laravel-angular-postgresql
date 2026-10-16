@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Payments\Application\AcquirerAuthorization;
 use App\Payments\Application\Exceptions\IdempotencyKeyInProgress;
 use App\Payments\Application\Exceptions\IdempotencyKeyReused;
+use App\Payments\Application\Ports\LogContext;
 use App\Payments\Application\ProcessPayment;
 use App\Payments\Application\RetryPolicy;
 use App\Payments\Domain\Acquirer\AcquirerDecision;
@@ -15,8 +16,10 @@ use App\Payments\Domain\Exceptions\AcquirerTemporarilyUnavailable;
 use App\Payments\Domain\MerchantId;
 use App\Payments\Domain\Rules\AmountLimits;
 use App\Payments\Domain\Rules\BusinessRules;
+use App\Payments\Domain\TransactionId;
 use App\Payments\Domain\TransactionStatus;
 use App\Payments\Infrastructure\HmacRequestFingerprinter;
+use Psr\Log\NullLogger;
 use Tests\Support\Fakes\ArrayResponsePresenter;
 use Tests\Support\Fakes\InMemoryIdempotencyStore;
 use Tests\Support\Fakes\InMemoryTransactionRepository;
@@ -43,6 +46,7 @@ beforeEach(function () {
             $this->clock,
             $this->timer,
             $this->transactions,
+            new NullLogger,
         );
 
         return new ProcessPayment(
@@ -54,6 +58,11 @@ beforeEach(function () {
             $rules,
             $authorization,
             new ArrayResponsePresenter,
+            new NullLogger,
+            new class implements LogContext
+            {
+                public function addTransactionId(TransactionId $transactionId): void {}
+            },
         );
     };
 });

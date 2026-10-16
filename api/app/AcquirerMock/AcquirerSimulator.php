@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\AcquirerMock;
 
 use Illuminate\Contracts\Cache\Repository as Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -27,6 +28,15 @@ final readonly class AcquirerSimulator
     public function __construct(private Cache $cache) {}
 
     public function authorize(string $cardNumber, string $transactionId): MockResponse
+    {
+        $response = $this->respond($cardNumber, $transactionId);
+
+        Log::info('acquirer_mock.authorized', ['transaction_id' => $transactionId, 'status_code' => $response->statusCode]);
+
+        return $response;
+    }
+
+    private function respond(string $cardNumber, string $transactionId): MockResponse
     {
         return match ($cardNumber) {
             self::INSUFFICIENT_FUNDS_CARD => MockResponse::declined(self::INSUFFICIENT_FUNDS),
