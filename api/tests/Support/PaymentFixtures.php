@@ -21,12 +21,19 @@ use App\Payments\Domain\TransactionEvent;
 use App\Payments\Domain\TransactionId;
 use DateTimeImmutable;
 use DateTimeZone;
+use Random\Engine\Mt19937;
+use Random\Randomizer;
 
 final class PaymentFixtures
 {
     public const string VALID_CARD = '4111111111111111';
 
     public const string LUHN_INVALID_CARD = '4111111111111112';
+
+    public static function seededRandomizer(): Randomizer
+    {
+        return new Randomizer(new Mt19937(42));
+    }
 
     public static function at(string $time): DateTimeImmutable
     {
