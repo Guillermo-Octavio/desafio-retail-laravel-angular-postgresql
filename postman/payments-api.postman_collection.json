@@ -6,6 +6,26 @@
   },
   "event": [
     {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Runs before every request, so a single request also works without running the whole collection.",
+          "if (!pm.collectionVariables.get('runId')) {",
+          "  pm.collectionVariables.set('runId', `${Date.now()}`);",
+          "}",
+          "const now = new Date();",
+          "const year = now.getUTCFullYear();",
+          "const month = now.getUTCMonth() + 1;",
+          "pm.collectionVariables.set('currentMonth', month);",
+          "pm.collectionVariables.set('currentYear', year);",
+          "pm.collectionVariables.set('previousMonth', month === 1 ? 12 : month - 1);",
+          "pm.collectionVariables.set('previousMonthYear', month === 1 ? year - 1 : year);",
+          "pm.collectionVariables.set('futureYear', year + 5);"
+        ]
+      }
+    },
+    {
       "listen": "test",
       "script": {
         "type": "text/javascript",
@@ -54,16 +74,8 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "// Unique per run, so the idempotency keys and merchants never collide with earlier runs.",
-              "pm.collectionVariables.set('runId', `${Date.now()}`);",
-              "const now = new Date();",
-              "const year = now.getUTCFullYear();",
-              "const month = now.getUTCMonth() + 1;",
-              "pm.collectionVariables.set('currentMonth', month);",
-              "pm.collectionVariables.set('currentYear', year);",
-              "pm.collectionVariables.set('futureYear', year + 5);",
-              "pm.collectionVariables.set('previousMonth', month === 1 ? 12 : month - 1);",
-              "pm.collectionVariables.set('previousMonthYear', month === 1 ? year - 1 : year);"
+              "// A new id for every full run, so idempotency keys and merchants never collide with earlier runs.",
+              "pm.collectionVariables.set('runId', `${Date.now()}`);"
             ]
           }
         },
