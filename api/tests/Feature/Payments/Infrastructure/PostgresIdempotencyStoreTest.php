@@ -85,7 +85,7 @@ it('detects a key that another connection reserved and committed first', functio
             ->and(DB::table('idempotency_keys')->count())->toBe(1);
     } finally {
         // The other connection committed outside the test transaction, so it cleans up its own row.
-        $otherRequest->table('idempotency_keys')->delete();
+        $otherRequest->table('idempotency_keys')->where('idempotency_key', 'key-1')->delete();
         $otherRequest->disconnect();
     }
 });

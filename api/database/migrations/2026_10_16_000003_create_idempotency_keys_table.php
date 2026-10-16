@@ -19,7 +19,9 @@ return new class extends Migration
             $table->foreignUuid('transaction_id')->nullable()->constrained('transactions');
             $table->smallInteger('response_status')->nullable();
             $table->jsonb('response_body')->nullable();
-            $table->timestampsTz(6);
+            // timestampsTz() would create nullable columns; the data model requires them.
+            $table->timestampTz('created_at', 6);
+            $table->timestampTz('updated_at', 6);
 
             // Resolves concurrent requests with the same key: only one insert can succeed (DD-09).
             $table->unique(['merchant_id', 'idempotency_key']);

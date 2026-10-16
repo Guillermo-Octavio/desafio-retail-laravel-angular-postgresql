@@ -27,7 +27,9 @@ return new class extends Migration
             $table->string('card_brand', 16);
             $table->char('card_last4', 4);
             $table->string('correlation_id', 64);
-            $table->timestampsTz(6);
+            // timestampsTz() would create nullable columns; the data model requires them.
+            $table->timestampTz('created_at', 6);
+            $table->timestampTz('updated_at', 6);
 
             $table->rawIndex('merchant_id, created_at DESC', 'transactions_merchant_id_created_at_index');
             $table->rawIndex('status, created_at DESC', 'transactions_status_created_at_index');

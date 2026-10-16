@@ -41,3 +41,8 @@ it('rejects a key linked to a transaction that does not exist', function () {
         'transaction_id' => PaymentRows::TRANSACTION_ID,
     ])))->toThrow(QueryException::class, 'violates foreign key constraint');
 });
+
+it('requires the creation and update times', function (string $column) {
+    expect(fn () => DB::table('idempotency_keys')->insert(PaymentRows::idempotencyKey([$column => null])))
+        ->toThrow(QueryException::class, 'violates not-null constraint');
+})->with(['created_at', 'updated_at']);

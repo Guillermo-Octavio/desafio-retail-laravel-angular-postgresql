@@ -54,3 +54,8 @@ it('indexes the listings by merchant, status and date, newest first', function (
         ->toContain('(status, created_at DESC)')
         ->toContain('(created_at DESC)');
 });
+
+it('requires the creation and update times', function (string $column) {
+    expect(fn () => DB::table('transactions')->insert(PaymentRows::transaction([$column => null])))
+        ->toThrow(QueryException::class, 'violates not-null constraint');
+})->with(['created_at', 'updated_at']);
