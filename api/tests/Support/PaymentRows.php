@@ -33,4 +33,23 @@ final class PaymentRows
             ...$overrides,
         ];
     }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    public static function event(array $overrides = []): array
+    {
+        return [
+            'transaction_id' => self::TRANSACTION_ID,
+            'type' => 'STATUS_CHANGED',
+            'from_status' => null,
+            'to_status' => 'PENDING',
+            'reason' => null,
+            'metadata' => null,
+            'correlation_id' => 'corr-123',
+            'occurred_at' => '2026-10-15 12:00:00.123456+00',
+            ...$overrides,
+        ];
+    }
 }
