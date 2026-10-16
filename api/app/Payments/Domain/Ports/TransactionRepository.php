@@ -9,11 +9,8 @@ use App\Payments\Domain\Transaction;
 interface TransactionRepository
 {
     /**
-     * Persists the current state together with the events recorded since the last save,
-     * in a single database transaction.
-     *
-     * The events are taken from the aggregate before writing, so after a failed save the
-     * instance must be discarded instead of saved again.
+     * Persists the current state together with the recorded events in a single database
+     * transaction, and clears the events only after the commit, so a failed save can be retried.
      */
     public function save(Transaction $transaction): void;
 }

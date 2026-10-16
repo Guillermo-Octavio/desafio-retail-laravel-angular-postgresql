@@ -113,16 +113,21 @@ final class Transaction
     }
 
     /**
-     * Returns the events recorded since the last call, so each one is persisted only once.
+     * Events recorded since they were last cleared, in order.
      *
      * @return list<TransactionEvent>
      */
-    public function pullRecordedEvents(): array
+    public function recordedEvents(): array
     {
-        $events = $this->recordedEvents;
-        $this->recordedEvents = [];
+        return $this->recordedEvents;
+    }
 
-        return $events;
+    /**
+     * Called once the recorded events are persisted, so a failed save keeps them for a retry.
+     */
+    public function clearRecordedEvents(): void
+    {
+        $this->recordedEvents = [];
     }
 
     public function id(): TransactionId

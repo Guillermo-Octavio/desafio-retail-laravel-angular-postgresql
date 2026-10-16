@@ -110,3 +110,21 @@ it('saves the state and its events atomically', function () {
         ->and(DB::table('transactions')->value('status'))->toBe('PENDING')
         ->and(DB::table('transaction_events')->count())->toBe(1);
 });
+
+it('keeps the unsaved events after a failed save so a retry stores them', function () {
+    $transaction = PaymentFixtures::newTransaction();
+    $this->repository->save($transaction);
+    // Forces the event insert to fail. PostgreSQL DDL is transactional, so it can be undone with a savepoint.
+    DB::beginTransaction();
+    DB::statement("ALTER TABLE transaction_events ADD CONSTRAINT test_reject_declined CHECK (to_status IS DISTINCT FROM 'DECLINED')");
+    $transaction->decline(DeclineReason::CARD_EXPIRED, PaymentFixtures::at('12:00:01'));
+
+    expect(fn () => $this->repository->save($transaction))->toThrow(QueryException::class);
+
+    DB::rollBack();
+    $this->repository->save($transaction);
+
+    expect(DB::table('transactions')->value('status'))->toBe('DECLINED')
+        ->and(array_column(StoredPayments::events(), 'to_status'))->toBe(['PENDING', 'DECLINED'])
+        ->and($transaction->recordedEvents())->toBe([]);
+});

@@ -20,7 +20,7 @@ final readonly class EloquentTransactionRepository implements TransactionReposit
 
     public function save(Transaction $transaction): void
     {
-        $events = $transaction->pullRecordedEvents();
+        $events = $transaction->recordedEvents();
 
         DB::transaction(function () use ($transaction, $events): void {
             TransactionRecord::query()->upsert([$this->transactionRow($transaction)], ['id'], self::MUTABLE_COLUMNS);
@@ -32,6 +32,8 @@ final readonly class EloquentTransactionRepository implements TransactionReposit
                 ));
             }
         });
+
+        $transaction->clearRecordedEvents();
     }
 
     /**

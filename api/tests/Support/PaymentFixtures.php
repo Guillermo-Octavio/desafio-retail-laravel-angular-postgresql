@@ -68,7 +68,7 @@ final class PaymentFixtures
     {
         $transaction = self::newTransaction();
         $transaction->startProcessing(self::at('12:00:01'));
-        $transaction->pullRecordedEvents();
+        $transaction->clearRecordedEvents();
 
         return $transaction;
     }

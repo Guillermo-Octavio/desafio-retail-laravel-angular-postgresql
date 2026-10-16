@@ -16,7 +16,7 @@ use Tests\Support\PaymentFixtures;
 
 it('is created in PENDING with its data and a creation event', function () {
     $transaction = PaymentFixtures::newTransaction();
-    $events = $transaction->pullRecordedEvents();
+    $events = $transaction->recordedEvents();
 
     expect($transaction->id()->value)->toBe('0199f0c2-6a1e-7c3a-9b2f-5d1e8a4c7b10')
         ->and($transaction->merchantId()->value)->toBe('merchant-001')
@@ -37,13 +37,13 @@ it('is created in PENDING with its data and a creation event', function () {
 
 it('is declined by a business rule while PENDING', function () {
     $transaction = PaymentFixtures::newTransaction();
-    $transaction->pullRecordedEvents();
+    $transaction->clearRecordedEvents();
 
     $transaction->decline(DeclineReason::AMOUNT_LIMIT_EXCEEDED, PaymentFixtures::at('12:00:01'));
 
     expect($transaction->status())->toBe(TransactionStatus::DECLINED)
         ->and($transaction->declineReason())->toBe(DeclineReason::AMOUNT_LIMIT_EXCEEDED)
-        ->and(PaymentFixtures::describeEvents($transaction->pullRecordedEvents()))->toBe([[
+        ->and(PaymentFixtures::describeEvents($transaction->recordedEvents()))->toBe([[
             'type' => EventType::STATUS_CHANGED,
             'from' => TransactionStatus::PENDING,
             'to' => TransactionStatus::DECLINED,
@@ -63,7 +63,7 @@ it('records the history of a payment approved after a retry', function () {
     expect($transaction->status())->toBe(TransactionStatus::APPROVED)
         ->and($transaction->acquirerReference())->toBe('A1B2C3')
         ->and($transaction->declineReason())->toBeNull()
-        ->and(PaymentFixtures::describeEvents($transaction->pullRecordedEvents()))->toBe([
+        ->and(PaymentFixtures::describeEvents($transaction->recordedEvents()))->toBe([
             ['type' => EventType::STATUS_CHANGED, 'from' => null, 'to' => TransactionStatus::PENDING, 'reason' => null, 'metadata' => []],
             ['type' => EventType::STATUS_CHANGED, 'from' => TransactionStatus::PENDING, 'to' => TransactionStatus::PROCESSING, 'reason' => null, 'metadata' => []],
             ['type' => EventType::ACQUIRER_ATTEMPT, 'from' => null, 'to' => null, 'reason' => null, 'metadata' => ['attempt' => 1, 'outcome' => 'TEMPORARY_ERROR', 'duration_ms' => 2001, 'error_code' => 'TIMEOUT']],
@@ -79,14 +79,14 @@ it('is declined by the acquirer while PROCESSING', function () {
 
     expect($transaction->status())->toBe(TransactionStatus::DECLINED)
         ->and($transaction->declineReason())->toBe(DeclineReason::INSUFFICIENT_FUNDS)
-        ->and($transaction->pullRecordedEvents()[0]->fromStatus)->toBe(TransactionStatus::PROCESSING);
+        ->and($transaction->recordedEvents()[0]->fromStatus)->toBe(TransactionStatus::PROCESSING);
 });
 
 it('fails with a reason while PROCESSING', function () {
     $transaction = PaymentFixtures::processingTransaction();
 
     $transaction->fail(DeclineReason::ACQUIRER_UNAVAILABLE, PaymentFixtures::at('12:00:07'));
-    $events = $transaction->pullRecordedEvents();
+    $events = $transaction->recordedEvents();
 
     expect($transaction->status())->toBe(TransactionStatus::FAILED)
         ->and($transaction->declineReason())->toBe(DeclineReason::ACQUIRER_UNAVAILABLE)
@@ -95,17 +95,21 @@ it('fails with a reason while PROCESSING', function () {
         ->and($events[0]->reason)->toBe(DeclineReason::ACQUIRER_UNAVAILABLE);
 });
 
-it('returns each recorded event only once', function () {
+it('keeps the recorded events until they are cleared', function () {
     $transaction = PaymentFixtures::newTransaction();
 
-    expect($transaction->pullRecordedEvents())->toHaveCount(1)
-        ->and($transaction->pullRecordedEvents())->toBe([]);
+    expect($transaction->recordedEvents())->toHaveCount(1)
+        ->and($transaction->recordedEvents())->toHaveCount(1);
+
+    $transaction->clearRecordedEvents();
+
+    expect($transaction->recordedEvents())->toBe([]);
 });
 
 it('rejects a transition outside the state machine without changing the transaction', function (Closure $prepare, Closure $operation) {
     $transaction = PaymentFixtures::newTransaction();
     $prepare($transaction);
-    $transaction->pullRecordedEvents();
+    $transaction->clearRecordedEvents();
     $statusBefore = $transaction->status();
     $reasonBefore = $transaction->declineReason();
     $referenceBefore = $transaction->acquirerReference();
@@ -116,7 +120,7 @@ it('rejects a transition outside the state machine without changing the transact
         expect($transaction->status())->toBe($statusBefore)
             ->and($transaction->declineReason())->toBe($reasonBefore)
             ->and($transaction->acquirerReference())->toBe($referenceBefore)
-            ->and($transaction->pullRecordedEvents())->toBe([]);
+            ->and($transaction->recordedEvents())->toBe([]);
 
         return;
     }
