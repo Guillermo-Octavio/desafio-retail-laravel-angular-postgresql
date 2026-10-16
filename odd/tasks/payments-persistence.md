@@ -43,3 +43,9 @@ Ruta inline: unidades secuenciales que dependen de las migraciones; no hay motiv
 - **L10** Advisories no aplicados:
   - `CHECK` en `transaction_events.type` e `idempotency_keys.status`: no lo pide la documentación;
   - `sole()` bajo REPEATABLE READ: no hay casos de uso todavía.
+- **L11** (2026-10-16) Instrucción del usuario: "Siempre revisar los cambios RDD en este proyecto". Revisión RDD con los lentes de riesgo, resiliencia y confiabilidad: **aprobada** y cerrada (lineage `review-4630b646d9982432`). Dejó hallazgos informativos sin bloqueo:
+  - `attachTransaction()` y `complete()` no fallan si no existe la fila;
+  - `sole()` después de un conflicto;
+  - `ON CONFLICT` sin destino explícito;
+  - pérdida de eventos si se reintenta `save()`, ya documentada en L5;
+  - clave atascada en `IN_PROGRESS`, limitación conocida en la sección 10 del modelo de dominio.
