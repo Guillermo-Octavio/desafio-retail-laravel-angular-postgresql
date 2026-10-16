@@ -47,3 +47,7 @@ Ruta inline: tareas pequeñas y secuenciales; no hay motivo de delegación.
   - URL base mal formada o sin esquema: es un error de configuración, fuera del dominio;
   - el contador del mock no es atómico ante solicitudes paralelas, pero el flujo real reintenta en secuencia;
   - el entero no estricto en el mock, ya registrado en L4.
+- **L8** Revisión RDD de la rama: **aprobada** y cerrada (lineage `review-a9187abd29eb5d6f`).
+- **L9** (2026-10-16) Instrucción del usuario: "corrige esos dos y luego haz merge a main y push".
+  - Prueba de que los timeouts configurados (1/2 y 3/7) y `allow_redirects=false` llegan a Guzzle, mediante un middleware global. Se confirmó que detecta errores intercambiando temporalmente los argumentos en el provider: RED con 2 pruebas fallando.
+  - El mock corre con `APP_KEY` vacía y `APP_DEBUG=false`. Verificado: `app.key` sin configurar dentro del mock, porque la variable vacía impide que se tome de `api/.env`. La prueba de humo con las 5 tarjetas sigue correcta.
