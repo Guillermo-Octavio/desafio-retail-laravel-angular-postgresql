@@ -50,3 +50,12 @@ Ruta inline: tareas secuenciales sobre el mismo flujo HTTP; no hay motivo de del
 - **L4** Decisión aceptada, observada por GGA: el Form Request de `Http` arma los value objects del dominio para construir `ProcessPaymentCommand`. El comando ya está definido con tipos del dominio, y el Form Request es el borde que convierte la entrada.
 - **L5** Se quitó la ruta `/user` del scaffold, que usaba Sanctum y no corresponde a este servicio. Se documentaron en la sección 8 de la arquitectura los códigos `NOT_FOUND` y `HTTP_ERROR`, y en SUP-12 la regla de correlación.
 - **L6** Verificación: 337 pruebas aprobadas, dos ejecuciones seguidas. Prueba de humo por `:8080` con las cuatro tarjetas de prueba (`APPROVED`, `DECLINED`/`INSUFFICIENT_FUNDS`, `APPROVED` tras un reintento, `FAILED`/`ACQUIRER_UNAVAILABLE`), propagación de `X-Correlation-Id` y repetición con `Idempotent-Replayed: true`.
+- **L7** Verificador independiente: S1, S2 y S4 en PASS; S3 en PARTIAL por el bloqueo B1.
+  - B1: un `merchant_id` con `\u0000` pasaba la validación y el pago se aprobaba. Después, `jsonb` rechazaba ese carácter al guardar la respuesta, el cliente recibía un `500`, el comercio quedaba cortado y la clave quedaba en `IN_PROGRESS` para siempre.
+  - Corrección (823fd84): regla `regex:/^[^\p{C}]+$/u` (UTF-8 válido, sin caracteres de control) en `merchant_id`, `card.holder_name` e `idempotency_key`.
+  - Advisories aplicados: la clave con UTF-8 inválido ahora da `422`; los `4xx` esperados ya no se reportan (`dontReport`); `response_body` pasa a `json` (migración `000005`), porque `jsonb` reordenaba las claves y HU-06 pide "mismo cuerpo"; y se agregaron `NOT_FOUND` y `HTTP_ERROR` a la sección 8 de los requerimientos.
+  - RED: 7 pruebas fallando. Recheck contra el stack real: NUL → `422`, clave con UTF-8 inválido → `422`, repetición idéntica byte a byte. Se probó el rollback y la nueva aplicación de la migración. Pasan 343 pruebas.
+- **L8** Error propio corregido (commit de pruebas): las pruebas de `IN_PROGRESS` insertaban una huella arbitraria y en realidad ejercían `REUSED`, verificando solo el `409`. Ahora usan la huella real y verifican el código exacto.
+- **L9** Advisories no aplicados:
+  - el `413` de nginx en el gateway, que no llega a Laravel y está fuera de S1;
+  - filas de datos de prueba en la base de desarrollo: dos claves de humo que incluyen un número de tarjeta de prueba, y la fila `verifier-a` en `IN_PROGRESS` que dejó el verificador. Solo afectan a desarrollo.
