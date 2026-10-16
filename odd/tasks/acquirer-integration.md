@@ -42,3 +42,8 @@ Ruta inline: tareas pequeñas y secuenciales; no hay motivo de delegación.
   - Los textos de protocolo ahora son constantes.
   - Sin aplicar: el entero estricto en el request del mock (es solo un simulador) y la detección del timeout por el mensaje de cURL. Si falla, el error queda como `CONNECTION_FAILED`, que también es temporal.
 - **L5** Se documentaron en la sección 5.2 de la arquitectura `--no-reload` y el no seguir redirecciones. Verificación local: 270 pruebas aprobadas.
+- **L6** Verificador independiente: S1 y S2 en PASS; S3 en FAIL por el bloqueo B1. Si el cuerpo de un `4xx` o `5xx` se corta después del encabezado, Laravel lanza `RequestException`, que escapaba del contrato del puerto. Corrección: el gateway mapea esa excepción por su estado (`5xx` → temporal; el resto → integración) y no la encadena, porque su mensaje cita el cuerpo de la respuesta. RED: 2 pruebas fallando. Recheck con el servidor TCP real del verificador: `cut503` y `slow503` → `HTTP_503` temporal, `cut422` → `HTTP_422` integración, sin filtrar datos de tarjeta. Pasan 272 pruebas. Se documentó que `--no-reload` también es necesario para `PHP_CLI_SERVER_WORKERS`.
+- **L7** Advisories no aplicados:
+  - URL base mal formada o sin esquema: es un error de configuración, fuera del dominio;
+  - el contador del mock no es atómico ante solicitudes paralelas, pero el flujo real reintenta en secuencia;
+  - el entero no estricto en el mock, ya registrado en L4.
