@@ -7,6 +7,7 @@ namespace App\Payments\Infrastructure;
 use App\Payments\Application\Ports\MonotonicTimer;
 use App\Payments\Application\Ports\RequestFingerprinter;
 use App\Payments\Application\Ports\Sleeper;
+use App\Payments\Application\Ports\TransactionQueries;
 use App\Payments\Application\RetryPolicy;
 use App\Payments\Domain\Ports\AcquirerGateway;
 use App\Payments\Domain\Ports\Clock;
@@ -16,6 +17,7 @@ use App\Payments\Domain\Ports\TransactionRepository;
 use App\Payments\Domain\Rules\AmountLimits;
 use App\Payments\Domain\Rules\BusinessRules;
 use App\Payments\Infrastructure\Acquirer\HttpAcquirerGateway;
+use App\Payments\Infrastructure\Persistence\EloquentTransactionQueries;
 use App\Payments\Infrastructure\Persistence\EloquentTransactionRepository;
 use App\Payments\Infrastructure\Persistence\PostgresIdempotencyStore;
 use Illuminate\Http\Client\Factory as HttpFactory;
@@ -32,6 +34,7 @@ final class PaymentsServiceProvider extends ServiceProvider
         TransactionIdGenerator::class => UuidV7TransactionIdGenerator::class,
         TransactionRepository::class => EloquentTransactionRepository::class,
         IdempotencyStore::class => PostgresIdempotencyStore::class,
+        TransactionQueries::class => EloquentTransactionQueries::class,
         Sleeper::class => SleepSleeper::class,
         MonotonicTimer::class => HrtimeMonotonicTimer::class,
     ];

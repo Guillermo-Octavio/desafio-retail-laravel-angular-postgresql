@@ -6,6 +6,7 @@ namespace App\Payments\Http;
 
 use App\Payments\Application\Exceptions\IdempotencyKeyInProgress;
 use App\Payments\Application\Exceptions\IdempotencyKeyReused;
+use App\Payments\Application\Exceptions\TransactionNotFound;
 use App\Payments\Http\Exceptions\MissingIdempotencyKey;
 use App\Shared\Http\ApiErrorRendering;
 use App\Shared\Http\ErrorResponse;
@@ -21,7 +22,7 @@ final class PaymentsErrorRendering
     public static function register(Exceptions $exceptions): void
     {
         // Expected client errors: they are answered with a 4xx and are not application failures.
-        $exceptions->dontReport([MissingIdempotencyKey::class, IdempotencyKeyReused::class, IdempotencyKeyInProgress::class]);
+        $exceptions->dontReport([MissingIdempotencyKey::class, IdempotencyKeyReused::class, IdempotencyKeyInProgress::class, TransactionNotFound::class]);
 
         $exceptions->render(fn (MissingIdempotencyKey $error, Request $request): ?JsonResponse => ApiErrorRendering::forApi($request, fn () => ErrorResponse::make(
             JsonResponse::HTTP_BAD_REQUEST,
@@ -38,6 +39,12 @@ final class PaymentsErrorRendering
         $exceptions->render(fn (IdempotencyKeyInProgress $error, Request $request): ?JsonResponse => ApiErrorRendering::forApi($request, fn () => ErrorResponse::make(
             JsonResponse::HTTP_CONFLICT,
             'IDEMPOTENCY_KEY_IN_PROGRESS',
+            $error->getMessage(),
+        )));
+
+        $exceptions->render(fn (TransactionNotFound $error, Request $request): ?JsonResponse => ApiErrorRendering::forApi($request, fn () => ErrorResponse::make(
+            JsonResponse::HTTP_NOT_FOUND,
+            'TRANSACTION_NOT_FOUND',
             $error->getMessage(),
         )));
     }

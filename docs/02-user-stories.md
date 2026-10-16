@@ -352,7 +352,7 @@ Característica: Evitar pagos duplicados
 
 **Criterios de aceptación**
 
-1. `GET /api/payments/{transaction_id}` responde `200` con la misma representación que la respuesta de creación.
+1. `GET /api/payments/{transaction_id}` responde `200` con los mismos campos que la respuesta de creación, más el arreglo `events` (HU-09). La respuesta de creación no incluye eventos, para que la respuesta guardada para la repetición no dependa del historial.
 2. Un identificador desconocido responde `404` `TRANSACTION_NOT_FOUND`.
 3. Un identificador mal formado (que no es UUID) también responde `404`, sin exponer errores internos.
 

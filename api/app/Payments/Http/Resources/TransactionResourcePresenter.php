@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Payments\Http\Resources;
 
 use App\Payments\Application\Ports\PaymentResponsePresenter;
+use App\Payments\Application\Queries\TransactionSummary;
 use App\Payments\Domain\Idempotency\StoredResponse;
 use App\Payments\Domain\Transaction;
 use Illuminate\Http\JsonResponse;
@@ -16,6 +17,6 @@ final readonly class TransactionResourcePresenter implements PaymentResponsePres
 {
     public function present(Transaction $transaction): StoredResponse
     {
-        return new StoredResponse(JsonResponse::HTTP_CREATED, (new TransactionResource($transaction))->resolve());
+        return new StoredResponse(JsonResponse::HTTP_CREATED, (new TransactionResource(TransactionSummary::fromTransaction($transaction)))->resolve());
     }
 }

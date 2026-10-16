@@ -34,3 +34,9 @@ it('accepts a correlation id of up to 64 characters', function () {
 it('rejects an empty or too long correlation id', function (string $value) {
     new CorrelationId($value);
 })->with(['', str_repeat('c', 65)])->throws(InvalidCorrelationId::class);
+
+it('builds a transaction id only from a UUID v7, without throwing', function () {
+    expect(TransactionId::tryFrom('0199F0C2-6A1E-7C3A-9B2F-5D1E8A4C7B10')?->value)->toBe('0199f0c2-6a1e-7c3a-9b2f-5d1e8a4c7b10')
+        ->and(TransactionId::tryFrom('no-es-un-uuid'))->toBeNull()
+        ->and(TransactionId::tryFrom('00000000-0000-0000-0000-000000000000'))->toBeNull();
+});

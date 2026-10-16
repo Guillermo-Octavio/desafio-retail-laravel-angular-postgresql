@@ -26,6 +26,14 @@ final readonly class TransactionId
         $this->value = $normalized;
     }
 
+    /**
+     * Returns null for a value that is not a UUID v7, such as an id typed in a URL.
+     */
+    public static function tryFrom(string $value): ?self
+    {
+        return preg_match(self::UUID_V7_FORMAT, strtolower($value)) === 1 ? new self($value) : null;
+    }
+
     public function equals(self $other): bool
     {
         return $this->value === $other->value;
