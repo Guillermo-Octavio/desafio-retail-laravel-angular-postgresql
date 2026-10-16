@@ -14,8 +14,8 @@ export function aTransaction(overrides: Partial<TransactionSummary> = {}): Trans
     status: 'APPROVED',
     decline_reason: null,
     card: { brand: 'VISA', last4: '1111' },
-    created_at: '2026-10-15T12:00:00.000+00:00',
-    updated_at: '2026-10-15T12:00:01.000+00:00',
+    created_at: '2026-10-15T09:00:00.000-03:00',
+    updated_at: '2026-10-15T09:00:01.000-03:00',
     ...overrides,
   };
 }
@@ -44,7 +44,7 @@ export function aTransactionDetails(
         reason: null,
         metadata: null,
         correlation_id: 'corr-123',
-        occurred_at: '2026-10-15T12:00:00.000+00:00',
+        occurred_at: '2026-10-15T09:00:00.000-03:00',
       },
       {
         type: 'STATUS_CHANGED',
@@ -53,7 +53,7 @@ export function aTransactionDetails(
         reason: null,
         metadata: null,
         correlation_id: 'corr-123',
-        occurred_at: '2026-10-15T12:00:00.100+00:00',
+        occurred_at: '2026-10-15T09:00:00.100-03:00',
       },
       {
         type: 'ACQUIRER_ATTEMPT',
@@ -67,7 +67,7 @@ export function aTransactionDetails(
           error_code: 'HTTP_503',
         },
         correlation_id: 'corr-123',
-        occurred_at: '2026-10-15T12:00:00.300+00:00',
+        occurred_at: '2026-10-15T09:00:00.300-03:00',
       },
       {
         type: 'ACQUIRER_ATTEMPT',
@@ -76,7 +76,7 @@ export function aTransactionDetails(
         reason: null,
         metadata: { attempt: 2, outcome: 'APPROVED', duration_ms: 85 },
         correlation_id: 'corr-123',
-        occurred_at: '2026-10-15T12:00:00.700+00:00',
+        occurred_at: '2026-10-15T09:00:00.700-03:00',
       },
       {
         type: 'STATUS_CHANGED',
@@ -85,7 +85,7 @@ export function aTransactionDetails(
         reason: null,
         metadata: null,
         correlation_id: 'corr-123',
-        occurred_at: '2026-10-15T12:00:01.000+00:00',
+        occurred_at: '2026-10-15T09:00:01.000-03:00',
       },
     ],
     ...overrides,

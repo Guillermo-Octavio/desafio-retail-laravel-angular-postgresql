@@ -1,9 +1,5 @@
 import { afterNextRender, Component, computed, ElementRef, input, viewChild } from '@angular/core';
-import {
-  BUSINESS_TIME_ZONE_LABEL,
-  formatBusinessDateTime,
-  formatBusinessTime,
-} from '../data/business-time';
+import { BUSINESS_TIME_LABEL, formatApiDateTime, formatApiTime } from '../data/api-time';
 import { describeEvent } from '../data/event-description';
 import { formatAmount } from '../data/money';
 import { TransactionDetails } from '../data/transaction.models';
@@ -66,14 +62,14 @@ export class TransactionDetail {
     afterNextRender(() => this.heading().nativeElement.focus());
   }
 
-  protected readonly timeZone = BUSINESS_TIME_ZONE_LABEL;
+  protected readonly timeZone = BUSINESS_TIME_LABEL;
 
   protected readonly createdAt = computed(() =>
-    formatBusinessDateTime(this.transaction().created_at),
+    formatApiDateTime(this.transaction().created_at, { milliseconds: true }),
   );
 
   protected readonly updatedAt = computed(() =>
-    formatBusinessDateTime(this.transaction().updated_at),
+    formatApiDateTime(this.transaction().updated_at, { milliseconds: true }),
   );
 
   protected readonly amount = computed(() =>
@@ -83,7 +79,7 @@ export class TransactionDetail {
   protected readonly events = computed(() =>
     this.transaction().events.map((event) => ({
       occurredAt: event.occurred_at,
-      time: formatBusinessTime(event.occurred_at),
+      time: formatApiTime(event.occurred_at),
       description: describeEvent(event),
       correlationId: event.correlation_id,
     })),

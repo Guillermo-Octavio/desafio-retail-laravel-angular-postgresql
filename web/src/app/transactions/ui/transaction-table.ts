@@ -1,6 +1,6 @@
 import { Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { BUSINESS_TIME_ZONE_LABEL, formatBusinessDateTime } from '../data/business-time';
+import { BUSINESS_TIME_LABEL, formatApiDateTime } from '../data/api-time';
 import { formatAmount } from '../data/money';
 import { TransactionSummary } from '../data/transaction.models';
 import { StatusBadge } from './status-badge';
@@ -56,10 +56,10 @@ import { StatusBadge } from './status-badge';
 export class TransactionTable {
   readonly transactions = input.required<TransactionSummary[]>();
 
-  protected readonly timeZone = BUSINESS_TIME_ZONE_LABEL;
+  protected readonly timeZone = BUSINESS_TIME_LABEL;
 
   protected dateTime(isoInstant: string): string {
-    return formatBusinessDateTime(isoInstant);
+    return formatApiDateTime(isoInstant);
   }
 
   protected amount(transaction: TransactionSummary): string {
