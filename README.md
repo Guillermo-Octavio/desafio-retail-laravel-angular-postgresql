@@ -1,68 +1,233 @@
 # Payment Processing Service
 
-Servicio de procesamiento de pagos con Laravel, PostgreSQL y una vista opcional en Angular.
+Servicio que recibe pagos de múltiples comercios, valida los datos, aplica reglas de negocio, pide la
+autorización a un adquirente simulado (Acquirer Mock) y registra cada transacción con su historial
+completo. Está construido con Laravel 13, PostgreSQL 18 y Docker. La vista web en Angular es
+opcional y todavía no está implementada.
 
-Documentación del diseño:
-
-- [Análisis de requerimientos](docs/01-requirements-analysis.md)
-- [Historias de usuario](docs/02-user-stories.md)
-- [Modelo de dominio](docs/03-domain-model.md)
-- [Arquitectura](docs/04-architecture.md)
-
-## Ejecución local
+## Ruta rápida
 
 Requisitos: Docker con Docker Compose v2.
 
-1. Crear el archivo de configuración a partir de la plantilla:
+1. Crear la configuración a partir de la plantilla:
 
    ```sh
    cp .env.example .env
    ```
 
-2. Completar los valores vacíos de `.env`:
-
-   - `DB_DATABASE`, `DB_USERNAME` y `DB_PASSWORD`: el nombre de la base de datos, el usuario y
-     la contraseña que elijas.
-   - `APP_KEY`: generarla con
+2. Completar en `.env`:
+   - `DB_DATABASE`, `DB_USERNAME` y `DB_PASSWORD`, con los valores que elijas.
+   - `APP_KEY`, generada con:
 
      ```sh
      echo "base64:$(openssl rand -base64 32)"
      ```
 
-3. Levantar el stack:
+3. Levantar el stack. La API ejecuta las migraciones al arrancar.
 
    ```sh
    docker compose up -d --build
    ```
 
-4. Verificar:
+4. Verificar que <http://localhost:8080/up> responda `200`.
 
-   - API: <http://localhost:8080/up> responde `200`.
-   - Vista web: <http://localhost:8080>.
+5. Enviar un pago:
 
-### Configuración
+   ```sh
+   curl -s -X POST http://localhost:8080/api/payments \
+     -H 'Content-Type: application/json' -H 'Accept: application/json' \
+     -H 'Idempotency-Key: key-001' -H 'X-Correlation-Id: corr-123' \
+     -d '{"merchant_id":"merchant-001","amount":15000,"currency":"CLP",
+          "card":{"number":"4111111111111111","holder_name":"Ada Lovelace",
+                  "expiry_month":12,"expiry_year":2030,"cvv":"123"}}'
+   ```
 
-- El `.env` de la raíz es la **única** fuente de configuración del stack. Docker Compose lo lee y
-  entrega los mismos valores a PostgreSQL y a la API, por lo que no pueden quedar desalineados.
-- `.env` está ignorado por git. `.env.example` es la plantilla versionada y no contiene secretos.
-- Si falta un valor obligatorio, `docker compose` se detiene e indica qué variable completar.
-- Dentro de Docker la API no usa `api/.env`: toma su configuración de las variables del contenedor.
-- PostgreSQL solo aplica las credenciales al crear su volumen. Para cambiarlas después hay que
-  recrearlo con `docker compose down -v`, lo que **borra los datos** de la base.
+   Respuesta `201 Created`:
 
-### Pruebas
+   ```json
+   {
+     "transaction_id": "01a1431b-3cc8-7219-a7c6-2b96894de9e6",
+     "merchant_id": "merchant-001",
+     "amount": 15000,
+     "currency": "CLP",
+     "status": "APPROVED",
+     "decline_reason": null,
+     "card": { "brand": "VISA", "last4": "1111" },
+     "created_at": "2026-10-16T05:07:00.936+00:00",
+     "updated_at": "2026-10-16T05:07:00.961+00:00"
+   }
+   ```
 
-Las pruebas usan PostgreSQL, en la base `payments_test`, separada de la de desarrollo. El
-contenedor de PostgreSQL la crea al inicializar un volumen vacío
-([script](docker/postgres/initdb/01-create-test-database.sh)). Si el volumen se creó antes de que
-existiera el script, se crea una sola vez con:
+## Uso de la API
+
+| Método y ruta | Qué hace | Detalle |
+|---------------|----------|---------|
+| `POST /api/payments` | Crea y procesa un pago de forma síncrona. | Exige el header `Idempotency-Key`. Responde `201` con el estado final; si se repite la solicitud, devuelve la respuesta original con `Idempotent-Replayed: true`. |
+| `GET /api/payments/{transaction_id}` | Consulta una transacción. | Los mismos campos que la creación, más `events`: el historial completo en orden. |
+| `GET /api/payments` | Lista transacciones. | Filtros opcionales `merchant_id` y `status`. Del más reciente al más antiguo; `per_page` de 20 por defecto, con un máximo de 100. |
+
+Datos clave del contrato:
+
+- **Montos:** son enteros en unidades mínimas de la moneda: `15000` CLP son $15.000 y `1050` USD
+  son US$10,50. Un decimal o un texto se rechazan con `422`.
+- **Rechazos:** los de negocio y los del adquirente **no** son errores HTTP. Responden `201`, con
+  `status` `DECLINED` o `FAILED` y su `decline_reason`.
+- **Errores:** todos usan el mismo formato `{"error": {"code", "message", "details"}}`. Los códigos
+  están en la
+  [sección 8 del análisis de requerimientos](docs/01-requirements-analysis.md#8-códigos-de-error).
+- **Correlación:** toda respuesta, incluidas las de error, devuelve `X-Correlation-Id`.
+
+### Tarjetas de prueba
+
+El Acquirer Mock responde según el número de tarjeta:
+
+| Tarjeta | Resultado |
+|---------|-----------|
+| `4111111111111111` (o cualquier otra válida) | `APPROVED` |
+| `4000000000000002` | `DECLINED` con `INSUFFICIENT_FUNDS` |
+| `4000000000000259` | Falla una vez de forma temporal y se aprueba en el reintento |
+| `4000000000000119` | Falla en los 3 intentos: `FAILED` con `ACQUIRER_UNAVAILABLE` |
+| `4111111111111112` | No cumple Luhn: `DECLINED` con `INVALID_CARD_NUMBER`, sin llamar al adquirente |
+
+### Seguir una transacción en los logs
+
+Los logs son JSON por `stderr`, y cada línea lleva `correlation_id` y, una vez creada la
+transacción, `transaction_id`. Para ver el recorrido completo a través de la API y el adquirente:
+
+```sh
+docker compose logs api acquirer-mock | grep corr-123
+```
+
+## Arquitectura
+
+```mermaid
+flowchart LR
+    C[Comercio] -- ":8080" --> G[gateway<br/>nginx]
+    G -- "/api/*" --> API[api<br/>Laravel + PHP-FPM]
+    API -- "HTTP, red interna" --> MOCK[acquirer-mock<br/>misma imagen]
+    API --> PG[(PostgreSQL)]
+```
+
+La API es un monolito modular con **arquitectura hexagonal** (DA-01). El dominio es PHP puro, y la
+regla de dependencias entre capas se verifica con pruebas `arch()` de Pest:
+
+| Capa | Responsabilidad |
+|------|-----------------|
+| `Payments/Domain` | El agregado `Transaction`, los value objects, las reglas de negocio y los puertos. Sin Laravel. |
+| `Payments/Application` | Casos de uso: `ProcessPayment`, `GetTransaction` y `ListTransactions`, más la política de reintentos. |
+| `Payments/Infrastructure` | Persistencia con Eloquent, idempotencia en PostgreSQL y el cliente HTTP del adquirente. |
+| `Payments/Http` | Controllers sin lógica, Form Requests y API Resources. |
+| `Shared` | Correlación y formato único de errores. |
+| `AcquirerMock` | El simulador, activo solo en su contenedor. |
+
+Flujo de `POST /api/payments`:
+
+1. Se resuelve el identificador de correlación y se valida la entrada.
+2. Se reserva la clave de idempotencia con `INSERT … ON CONFLICT DO NOTHING`.
+3. Se crea la transacción en `PENDING`.
+4. Se evalúan las reglas de negocio. Si alguna falla, la transacción termina en `DECLINED`.
+5. Si no, pasa a `PROCESSING`, se llama al adquirente con hasta 3 intentos y backoff
+   exponencial, y se guarda el estado final.
+6. Se guarda la respuesta en la clave de idempotencia y se devuelve `201`.
+
+Cada paso se confirma por separado, y ninguna transacción de base de datos queda abierta durante la
+llamada al adquirente (DA-04). El detalle completo, con diagramas, está en la
+[arquitectura](docs/04-architecture.md).
+
+## Decisiones técnicas
+
+| Decisión | Motivo |
+|----------|--------|
+| Montos enteros en unidades mínimas ([SUP-02](docs/01-requirements-analysis.md#61-representación-de-montos)) | Sin ambigüedad de formato ni errores de redondeo. Es la convención de Stripe, Adyen e ISO 8583. |
+| Estado actual en `transactions` e historial en `transaction_events`, de solo inserción (DD-03, DD-11) | Consultar por estado es directo, y un trigger impide modificar o borrar eventos. |
+| Restricciones `CHECK` sobre estado, moneda, monto y motivos (DD-12) | Las invariantes del dominio se cumplen incluso ante un error en la aplicación. |
+| Idempotencia con una restricción única por comercio y clave (DD-09, DA-06) | La base de datos resuelve las solicitudes concurrentes, sin locks en memoria. |
+| La huella de idempotencia es un HMAC-SHA256 y excluye el CVV (DD-10) | No se puede revertir por fuerza bruta, y el CVV no se conserva en ninguna forma después de autorizar (PCI DSS). |
+| Reintentos en la capa de aplicación y no en el cliente HTTP (DA-05) | Cada intento queda registrado como evento, con su duración y su error. |
+| Solo errores temporales se reintentan; un `4xx` del adquirente termina en `FAILED` con `ACQUIRER_ERROR` | Repetir una solicitud que el adquirente rechazó por integración volvería a fallar. |
+| El cliente del adquirente no sigue redirecciones | Una redirección reenviaría los datos de tarjeta a otro host. |
+| Acquirer Mock como contenedor aparte con la misma imagen (DA-03) | Se prueba la integración real por HTTP (timeouts y errores), sin exponer el mock por el gateway. |
+| Logs JSON por `stderr` con el `Context` de Laravel (DA-07) | Se sigue una transacción entre contenedores con un solo `grep`. |
+| Pruebas contra PostgreSQL y no contra SQLite (DA-09) | Las restricciones, el trigger y `ON CONFLICT` forman parte del comportamiento. |
+
+Las decisiones completas están en el [modelo de dominio](docs/03-domain-model.md#8-decisiones-de-diseño)
+(`DD-xx`) y en la [arquitectura](docs/04-architecture.md) (`DA-xx`).
+
+## Supuestos
+
+El enunciado deja abiertos varios puntos. Estos son los supuestos principales; la lista completa
+está en la [sección 6 del análisis de requerimientos](docs/01-requirements-analysis.md#6-ambigüedades-y-supuestos).
+
+| Supuesto | Decisión |
+|----------|----------|
+| Autenticación de comercios (SUP-01) | Fuera de alcance: `merchant_id` viaja en el cuerpo y se considera confiable. |
+| Monedas y límites (SUP-03, SUP-04) | `CLP` y `USD`. Límite configurable: CLP 5.000.000 y USD 5.000,00. |
+| Procesamiento (SUP-07, SUP-08) | Síncrono: la respuesta trae el estado final, con `201` incluso si se rechaza. |
+| Reintentos (SUP-10) | Hasta 3 intentos, con backoff de 200 ms y 400 ms más jitter. |
+| Idempotencia (SUP-11) | `Idempotency-Key` es obligatorio y su ámbito es el comercio. Otro contenido con la misma clave responde `409`. |
+| Correlación (SUP-12) | Se usa `X-Correlation-Id` si tiene hasta 64 caracteres visibles; si no, se genera un UUID. |
+
+## Limitaciones conocidas
+
+- **Clave bloqueada.** Si el proceso muere entre la reserva de la clave y la respuesta, la clave
+  queda en `IN_PROGRESS` y los reintentos reciben `409`. Queda registrado como advertencia en los
+  logs.
+- **Resultado ambiguo (SUP-15).** Un timeout cuando el adquirente sí autorizó se trata como error
+  temporal. En producción haría falta una consulta o un reverso.
+- **Paginación por desplazamiento.** Las páginas muy profundas son costosas; la evolución sería
+  paginar por cursor.
+- **Sin autenticación:** ver SUP-01.
+
+## Pruebas
+
+391 pruebas automatizadas, con Pest, contra PostgreSQL, en una base separada de la de desarrollo:
+
+- **Unitarias** del dominio y de los casos de uso, sin framework y con reloj fijo.
+- **De integración** de la persistencia: restricciones, trigger e idempotencia.
+- **De punta a punta** de cada escenario Gherkin de las
+  [historias de usuario](docs/02-user-stories.md), con el adquirente simulado.
+- **De arquitectura**, que verifican la regla de dependencias entre capas.
+
+```sh
+docker compose exec -T api php artisan test --compact
+```
+
+La base `payments_test` se crea al inicializar el volumen de PostgreSQL
+([script](docker/postgres/initdb/01-create-test-database.sh)). Si el volumen es anterior, se crea
+una sola vez con:
 
 ```sh
 docker compose exec postgres sh -c 'createdb -U "$POSTGRES_USER" payments_test'
 ```
 
-Para ejecutarlas:
+## Configuración
 
-```sh
-docker compose exec -T api php artisan test --compact
-```
+- El `.env` de la raíz es la **única** fuente de configuración. Docker Compose entrega los mismos
+  valores a PostgreSQL y a la API, así que no pueden quedar desalineados.
+- `.env` está ignorado por git. `.env.example` es la plantilla versionada y no contiene secretos.
+- Si falta un valor obligatorio, `docker compose` se detiene e indica qué variable completar.
+- Dentro de Docker la API no usa `api/.env`: toma su configuración de las variables del
+  contenedor.
+- PostgreSQL solo aplica las credenciales al crear su volumen. Para cambiarlas hay que recrearlo
+  con `docker compose down -v`, lo que **borra los datos**.
+
+## Uso de asistentes de IA
+
+Se usó **Claude Code** (Anthropic) como asistente durante todo el desarrollo, siempre con una
+propuesta previa aprobada por mí antes de implementar cada paso.
+
+| Para qué | Cómo se controló |
+|----------|------------------|
+| Analizar el enunciado y redactar la documentación de `docs/`: requerimientos, historias, dominio y arquitectura. | Revisé y aprobé cada documento. Las decisiones de producto y de diseño fueron mías, por ejemplo la representación de los montos, sacar el CVV de la huella y la regla del identificador de correlación. |
+| Implementar por unidades pequeñas con TDD: dominio, persistencia, caso de uso, adquirente y endpoints. | Cada regla empezó con una prueba que fallaba. Las reglas del proyecto están en [AGENTS.md](AGENTS.md). |
+| Revisar el código. | **Gentleman Guardian Angel** revisa cada commit contra AGENTS.md antes de aceptarlo. Además, un agente verificador independiente probó cada unidad con datos reales y encontró defectos que se corrigieron antes del merge: un pago aprobado que respondía `500` ante un carácter NUL, un desborde de paginación y una respuesta cortada del adquirente que escapaba de su contrato. |
+
+Todo el código pasó por las pruebas automatizadas y por mi revisión antes de integrarse a `main`.
+
+## Documentación del diseño
+
+- [Análisis de requerimientos](docs/01-requirements-analysis.md): requerimientos, supuestos, tarjetas de prueba y códigos de error.
+- [Historias de usuario](docs/02-user-stories.md): criterios de aceptación y escenarios Gherkin.
+- [Modelo de dominio](docs/03-domain-model.md): agregado, máquina de estados, reglas y modelo de datos.
+- [Arquitectura](docs/04-architecture.md): contenedores, capas, flujo, observabilidad y manejo de errores.
+- [Reglas del proyecto](AGENTS.md): principios, capas y criterios de revisión.
