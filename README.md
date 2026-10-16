@@ -49,3 +49,20 @@ Requisitos: Docker con Docker Compose v2.
 - Dentro de Docker la API no usa `api/.env`: toma su configuración de las variables del contenedor.
 - PostgreSQL solo aplica las credenciales al crear su volumen. Para cambiarlas después hay que
   recrearlo con `docker compose down -v`, lo que **borra los datos** de la base.
+
+### Pruebas
+
+Las pruebas usan PostgreSQL, en la base `payments_test`, separada de la de desarrollo. El
+contenedor de PostgreSQL la crea al inicializar un volumen vacío
+([script](docker/postgres/initdb/01-create-test-database.sh)). Si el volumen se creó antes de que
+existiera el script, se crea una sola vez con:
+
+```sh
+docker compose exec postgres sh -c 'createdb -U "$POSTGRES_USER" payments_test'
+```
+
+Para ejecutarlas:
+
+```sh
+docker compose exec -T api php artisan test --compact
+```
