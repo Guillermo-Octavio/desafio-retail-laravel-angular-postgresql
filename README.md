@@ -224,6 +224,84 @@ propuesta previa aprobada por mí antes de implementar cada paso.
 
 Todo el código pasó por las pruebas automatizadas y por mi revisión antes de integrarse a `main`.
 
+### Flujo de trabajo: ODD, GGA, RDD y humano en el ciclo
+
+La IA escribe, pero no decide sola ni se revisa sola. Cada capa de control atrapa un tipo distinto
+de error y deja evidencia. Las decisiones de producto y de entrega quedan en manos humanas (en
+amarillo en el diagrama).
+
+```mermaid
+flowchart TD
+    H0([Humano: pide el siguiente paso]) --> P[ODD: explorar docs y código<br/>y redactar una propuesta]
+    P --> H1{Humano:<br/>¿aprueba la propuesta?}
+    H1 -- Ajustes --> P
+    H1 -- Sí --> D[ODD: rama + documento de la funcionalidad<br/>specs, tareas y log de decisiones]
+
+    subgraph Tarea["Por cada tarea"]
+        R[TDD: prueba en RED] --> G[Implementar hasta GREEN]
+        G --> C[git commit]
+        C --> GGA{GGA pre-commit:<br/>¿cumple AGENTS.md?}
+        GGA -- Rechaza --> G
+        GGA -- Aprueba con observaciones --> O[Aplicar las válidas<br/>con amend]
+    end
+
+    D --> R
+    O --> V{¿Riesgo alto?}
+    V -- Sí --> VI[Verificador independiente<br/>prueba contra el stack real]
+    VI -- Bloqueos --> F[Corregir con RED/GREEN<br/>y recheck acotado]
+    F --> RDD
+    VI -- Sin bloqueos --> RDD
+    V -- No --> RDD
+
+    RDD[RDD: evaluación de riesgo] --> RV{Consentimiento<br/>de revisión}
+    RV -- Regla permanente:<br/>siempre revisar --> L[Revisores por lente<br/>riesgo, resiliencia,<br/>legibilidad, confiabilidad]
+    L --> A[Aprobado: acuse<br/>y autoridad consumida]
+    A --> H2{Humano:<br/>¿qué hacer con los hallazgos?}
+    H2 -- Corregir --> R
+    H2 -- Aceptar como limitación --> DOC[Documentar en docs/ y en el log]
+    DOC --> H3
+    H2 -- Seguir --> H3{Humano:<br/>¿merge y push?}
+    H3 -- Sí --> M[merge a main + push]
+    M --> H0
+
+    classDef human fill:#fde68a,stroke:#b45309,color:#000
+    class H0,H1,H2,H3,RV human
+```
+
+| Capa | Qué controla | Qué error atrapa | Evidencia que deja |
+|------|--------------|------------------|--------------------|
+| **ODD** (Organic Driven Development) | El proceso: primero explorar y proponer, después un documento con specs y tareas, y TDD por tarea. | Construir algo que no se pidió, o perder el hilo entre sesiones. | [`odd/tasks/`](odd/tasks): las specs citan los requerimientos y el log registra cada decisión. |
+| **GGA** (Gentleman Guardian Angel) | Cada commit, contra las reglas de [AGENTS.md](AGENTS.md). | Violaciones locales: lógica en un controller, código muerto, falta de pruebas, datos de tarjeta en logs. | Commits rechazados y observaciones aplicadas. |
+| **Verificador independiente** | Cada unidad terminada, probada **contra el stack real** con datos hostiles. | Defectos que las pruebas propias no ven, porque las escribió el mismo autor. | Veredicto por spec y reproducción de cada bloqueo. |
+| **RDD** (Receipt-Driven Development) | La rama completa, con revisores por lente sobre una copia inmutable del código. | Riesgos de diseño: alcance global de un handler, carreras, contratos ambiguos. | Un acuse de revisión con su linaje, y los hallazgos clasificados. |
+| **Humano en el ciclo** | Las decisiones de producto y de entrega. | Que la IA resuelva por su cuenta algo que es una decisión de negocio. | Las instrucciones textuales, registradas en el log de cada funcionalidad. |
+
+Los puntos de decisión humana son cuatro:
+
+1. **Antes de implementar:** se aprueba una propuesta, nunca código ya escrito.
+2. **Ante una decisión de diseño real:** se presenta con su recomendación y su costo. Ejemplos:
+   sacar el CVV de la huella, la regla del `X-Correlation-Id` o la forma del detalle en los `GET`.
+3. **Con los hallazgos de la revisión:** se decide qué se corrige y qué queda como limitación
+   documentada.
+4. **Merge y push:** siempre los pide la persona.
+
+El consentimiento de RDD es el único punto automatizado a conciencia, con una regla permanente:
+"siempre revisar los cambios RDD en este proyecto".
+
+Las capas son complementarias, no redundantes. Cada una encontró algo que las demás no habían
+visto:
+
+- **GGA** rechazó un commit porque un cambio de validación no tenía prueba en el Form Request.
+- **El verificador** encontró que un carácter NUL en `merchant_id` aprobaba el cobro pero respondía
+  `500` y dejaba la clave bloqueada. Las pruebas unitarias, GGA y el autor no lo habían visto.
+- **RDD** detectó que el reporte de errores del módulo de pagos atrapaba errores de **toda** la
+  aplicación: un problema de alcance, no de una línea de código.
+- **El humano** cuestionó la regla de correlación propuesta. Al revisarla resultó más estricta de
+  lo necesario, y se corrigió antes de implementarla.
+
+La IA aceleró la escritura; las capas de control y las decisiones humanas son las que hacen
+confiable el resultado.
+
 ## Documentación del diseño
 
 - [Análisis de requerimientos](docs/01-requirements-analysis.md): requerimientos, supuestos, tarjetas de prueba y códigos de error.
