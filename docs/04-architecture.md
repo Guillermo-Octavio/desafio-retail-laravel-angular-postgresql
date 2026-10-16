@@ -293,6 +293,17 @@ principales:
 Nunca se registran el número de tarjeta ni el CVV (HU-11). Una prueba verifica que no aparezcan
 en los logs.
 
+### 7.3 Fechas y zona horaria
+
+| Dónde | Zona | Motivo |
+|-------|------|--------|
+| Almacenamiento (`timestamptz`) y logs | UTC | Un `timestamptz` guarda un instante absoluto. Los logs de todos los contenedores quedan comparables, y el cambio de horario de Chile no repite horas. |
+| Vencimiento de la tarjeta | Zona de negocio | El mes termina cuando termina para el comercio (DD-06). |
+| Respuestas de la API | Zona de negocio, en ISO 8601 con su offset (`-03:00` o `-04:00`) | Es el mismo instante, legible en la hora del negocio. |
+| Vista web | Zona de negocio | Muestra la hora que entiende el analista. |
+
+La zona de negocio se configura con `PAYMENTS_BUSINESS_TIMEZONE`, con `America/Santiago` por defecto.
+
 ## 8. Manejo de errores
 
 Todas las respuestas de error usan el mismo formato, construido en un único punto

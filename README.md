@@ -77,6 +77,10 @@ Datos clave del contrato:
   están en la
   [sección 8 del análisis de requerimientos](docs/01-requirements-analysis.md#8-códigos-de-error).
 - **Correlación:** toda respuesta, incluidas las de error, devuelve `X-Correlation-Id`.
+- **Fechas:** se muestran en hora de Santiago, en ISO 8601 con su offset (por ejemplo
+  `2026-10-15T09:00:00.000-03:00`). Se almacenan y se registran en UTC, y el vencimiento de la
+  tarjeta se evalúa con el mes de Santiago (DD-06). La zona se configura con
+  `PAYMENTS_BUSINESS_TIMEZONE`.
 
 ### Tarjetas de prueba
 
