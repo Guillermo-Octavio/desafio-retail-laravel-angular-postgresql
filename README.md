@@ -195,7 +195,8 @@ está en la [sección 6 del análisis de requerimientos](docs/01-requirements-an
 
 ## Pruebas
 
-391 pruebas automatizadas, con Pest, contra PostgreSQL, en una base separada de la de desarrollo:
+La API tiene pruebas automatizadas con Pest, contra PostgreSQL, en una base separada de la de
+desarrollo:
 
 - **Unitarias** del dominio y de los casos de uso, sin framework y con reloj fijo.
 - **De integración** de la persistencia: restricciones, trigger e idempotencia.
