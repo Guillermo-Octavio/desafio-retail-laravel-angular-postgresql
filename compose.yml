@@ -53,10 +53,13 @@ services:
     # --no-reload passes the container environment to the server workers; otherwise
     # artisan serve drops every variable outside its passthrough list when api/.env exists.
     command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000", "--no-reload"]
+    # APP_KEY is set empty on purpose: the mock encrypts and signs nothing, so it must not hold the
+    # key that signs the API's idempotency fingerprints, not even from api/.env (an existing
+    # variable is never overwritten by the .env file). Debug pages stay off.
     environment:
       APP_ENV: ${APP_ENV:-local}
-      APP_DEBUG: ${APP_DEBUG:-true}
-      APP_KEY: ${APP_KEY:?Set APP_KEY in .env (see .env.example)}
+      APP_DEBUG: "false"
+      APP_KEY: ""
       ACQUIRER_MOCK_ENABLED: "true"
       PHP_CLI_SERVER_WORKERS: 4
       CACHE_STORE: file

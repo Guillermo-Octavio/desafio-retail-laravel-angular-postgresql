@@ -208,6 +208,9 @@ en su caché local.
 - Sus rutas se registran solo cuando `ACQUIRER_MOCK_ENABLED=true`, variable que únicamente tiene
   ese contenedor. En la API las rutas no existen (DA-03).
 - No usa la base de datos ni ejecuta migraciones.
+- No recibe `APP_KEY` (se define vacía para que tampoco la tome de `api/.env`) y corre con
+  `APP_DEBUG=false`: no cifra ni firma nada, y así nunca tiene la clave que firma las huellas de
+  idempotencia de la API.
 - Corre con `--no-reload`: sin esa opción, `artisan serve` solo pasa a sus workers una lista fija de
   variables de entorno cuando existe `api/.env`, y `ACQUIRER_MOCK_ENABLED` no llegaría. Además,
   sin `--no-reload` ignora `PHP_CLI_SERVER_WORKERS` y atiende con un solo proceso.
