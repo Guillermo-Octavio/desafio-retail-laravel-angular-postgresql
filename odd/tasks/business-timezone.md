@@ -14,13 +14,15 @@ Rama: `feature/business-timezone`. Entrega: `ask-on-risk`. Runners: `docker comp
 
 | ID | Specs | Ruta | Estado | Evidencia |
 |----|-------|------|--------|-----------|
-| T1 | S1 | inline | pendiente | |
-| T2 | S2 | inline | pendiente | |
-| T3 | S3 | inline | pendiente | |
-| T4 | S4 | inline | pendiente | |
+| T1 | S1 | inline | hecho | c329e6e; RED: 26 pruebas fallando; caso del borde de mes: 31 de octubre a las 22:00 en Santiago |
+| T2 | S2 | inline | hecho | 4326ded; RED: 3 pruebas fallando; offsets de verano (-03:00) e invierno (-04:00), y el instante sigue en UTC en la base |
+| T3 | S3 | inline | hecho | 59efc8d; RED: no compilaba sin el módulo; se usa `Intl` porque `DatePipe` no acepta zonas IANA |
+| T4 | S4 | inline | hecho | DD-06, arquitectura 7.3, README y Postman. Newman: 48/182 en verde |
 
 ## Log
 
 - **L1** (2026-10-16) Instrucción del usuario: "las fechas están en UTC, pero el sistema debería registrarlas con America/Santiago". Alcance aprobado ("ok, aplica ese alcance en una rama nueva"):
   - el almacenamiento y los logs siguen en UTC, porque un `timestamptz` guarda un instante y el horario de verano de Chile repite una hora local;
   - la zona de negocio se usa para el vencimiento, las respuestas de la API y la vista.
+- **L2** Postman: el sandbox de Newman no tiene `Intl` ("Intl is not defined"), pero `toLocaleString` con `timeZone` sí aplica la zona. Prueba en el borde de mes: el 1 de noviembre a las 01:00 UTC da 10/2026.
+- **L3** Verificación: 398 pruebas de la API y 55 de la web.
