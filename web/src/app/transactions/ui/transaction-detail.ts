@@ -10,7 +10,7 @@ import { StatusBadge } from './status-badge';
   imports: [DatePipe, StatusBadge],
   template: `
     <article class="flex flex-col gap-6">
-      <h1 #heading tabindex="-1" class="text-xl font-semibold text-slate-900 focus:outline-none">
+      <h1 #heading tabindex="-1" class="text-xl font-semibold text-slate-900">
         Transaction <span class="font-mono">{{ transaction().transaction_id }}</span>
       </h1>
 

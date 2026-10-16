@@ -1,6 +1,7 @@
 <a
   href="#main"
-  class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:rounded focus:bg-white focus:p-2"
+  (click)="skipToContent($event, main)"
+  class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:rounded focus:bg-white focus:p-2 focus:text-blue-800"
 >
   Skip to content
 </a>
@@ -9,6 +10,6 @@
     Payment Processing Service
   </p>
 </header>
-<main id="main" class="mx-auto max-w-6xl px-6 py-8">
+<main #main id="main" tabindex="-1" class="mx-auto max-w-6xl px-6 py-8">
   <router-outlet />
 </main>
