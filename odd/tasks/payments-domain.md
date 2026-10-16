@@ -18,12 +18,12 @@ Fuera de alcance: migraciones, Eloquent, casos de uso, HTTP, Acquirer Mock y gen
 
 | ID | Specs | Ruta | Estado | Evidencia |
 |----|-------|------|--------|-----------|
-| T1 | S1 | inline | pendiente | |
-| T2 | S2 | inline | pendiente | |
-| T3 | S3 | inline | pendiente | |
-| T4 | S4 | inline | pendiente | |
-| T5 | S5 | inline | pendiente | |
-| T6 | S6 | inline | pendiente | |
+| T1 | S1 | inline | hecho | 1c8a904; RED con clase temporal que usaba `now()` y `Str`, sin strict types |
+| T2 | S2 | inline | hecho | 668471b; RED: clases inexistentes |
+| T3 | S3 | inline | hecho | 615a0f4; RED: clases inexistentes |
+| T4 | S4 | inline | hecho | caa0102; RED: clases inexistentes |
+| T5 | S5 | inline | hecho | 20406d6 + ef82fdc (fixtures); RED: clases inexistentes |
+| T6 | S6 | inline | hecho | a666647; RED: 14 pruebas fallando |
 
 Ruta inline: no hay motivo de delegación (unidades secuenciales que dependen entre sí, sin paralelismo).
 
@@ -31,3 +31,13 @@ Ruta inline: no hay motivo de delegación (unidades secuenciales que dependen en
 
 - **L1** (2026-10-15) Propuesta aprobada: "sí, implementa en feature/payments-domain". Alcance aprobado: T1 a T6 de la propuesta (capa `Payments/Domain`).
 - **L2** Decisión: el orden de las reglas sigue DD-07 (Luhn, vencimiento, monto); HU-03 solo las enumera.
+- **L3** Verificación: `php artisan test --compact` da 136 pruebas aprobadas (257 aserciones) y Pint pasa. GGA aprobó cada commit.
+- **L4** Observaciones de GGA aplicadas:
+  - los helpers de prueba se movieron de funciones globales a `Tests\Support\PaymentFixtures`;
+  - `AmountLimits` rechaza límites que no son enteros, porque `config()` puede entregar strings.
+- **L5** Observaciones de GGA no aplicadas, por KISS/YAGNI:
+  - `AcquirerReference` como value object;
+  - la longitud de `error_code`;
+  - constantes con nombre para los prefijos de las marcas.
+- **L6** Limitación: el cast `(array)` y la reflexión exponen las propiedades privadas de `CardNumber` y `Cvv`. PHP no lo puede impedir; `var_dump`, `print_r`, `json_encode` y `serialize` están cubiertos.
+- **L7** Siguiente paso: la evaluación nativa marca riesgo alto (`hot_path` payments) con unas 2.200 líneas, y queda pendiente el consentimiento de revisión RDD.
