@@ -63,3 +63,16 @@ Ruta inline: tareas secuenciales del mismo módulo; no hay motivo de delegación
     - las regiones `role=status` y `alert` se insertan nuevas cada vez;
     - una página mayor a `last_page` no tiene camino de vuelta;
     - el `select` navega con cada `change`.
+- **L7** Revisión RDD de la rama con tres lentes: **aprobada** y cerrada.
+- **L8** (2026-10-16) Instrucción del usuario: "corrihe los hallazgos antes del merge". Corrección (a014813):
+  - `LoadState` mantiene las regiones `role="status"` y `role="alert"` siempre presentes;
+  - la tabla y la paginación anteriores quedan en pantalla, con `aria-busy`, mientras carga la página siguiente, y el foco no se pierde;
+  - "Retry" mueve el foco al encabezado;
+  - una página fuera de rango ofrece "Go to the first page";
+  - `describeEvent` cubre la metadata sin claves;
+  - hay una prueba del reintento en el detalle;
+  - `FIRST_PAGE` está en un solo lugar;
+  - la paleta pasó a `src/testing/palette.ts`, y una prueba verifica que todo color de texto y de fondo usado en las páginas esté en ella;
+  - `app.spec` limpia el DOM.
+
+  RED: no compilaba sin las salidas nuevas. La prueba de mutación (ocultar la tabla durante la carga) hace fallar la prueba del foco. Pasan 51 pruebas y compila.
