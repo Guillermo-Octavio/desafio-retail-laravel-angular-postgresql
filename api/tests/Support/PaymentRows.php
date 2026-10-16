@@ -52,4 +52,24 @@ final class PaymentRows
             ...$overrides,
         ];
     }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    public static function idempotencyKey(array $overrides = []): array
+    {
+        return [
+            'merchant_id' => 'merchant-001',
+            'idempotency_key' => 'key-1',
+            'request_fingerprint' => str_repeat('a', 64),
+            'status' => 'IN_PROGRESS',
+            'transaction_id' => null,
+            'response_status' => null,
+            'response_body' => null,
+            'created_at' => '2026-10-15 12:00:00+00',
+            'updated_at' => '2026-10-15 12:00:00+00',
+            ...$overrides,
+        ];
+    }
 }
