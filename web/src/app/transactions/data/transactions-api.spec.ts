@@ -3,7 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { firstValueFrom } from 'rxjs';
 import { TransactionsApi } from './transactions-api';
-import { aTransactionDetails, aTransactionPage } from './transaction.fixtures';
+import { aTransactionDetails, aTransactionPage } from '../../../testing/transaction.fixtures';
 
 describe('TransactionsApi', () => {
   let api: TransactionsApi;

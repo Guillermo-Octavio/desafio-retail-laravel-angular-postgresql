@@ -1,4 +1,8 @@
-import { TransactionDetails, TransactionPage, TransactionSummary } from './transaction.models';
+import {
+  TransactionDetails,
+  TransactionPage,
+  TransactionSummary,
+} from '../app/transactions/data/transaction.models';
 
 /** Test data shaped like real API responses. */
 export function aTransaction(overrides: Partial<TransactionSummary> = {}): TransactionSummary {
