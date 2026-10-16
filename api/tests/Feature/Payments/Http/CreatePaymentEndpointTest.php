@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Payments\Application\BusinessTimezone;
 use App\Payments\Application\Exceptions\IdempotencyKeyInProgress;
 use App\Payments\Application\Exceptions\IdempotencyKeyReused;
 use App\Payments\Http\Exceptions\MissingIdempotencyKey;
@@ -60,6 +61,7 @@ it('keeps storing the instant in UTC', function () {
 it('follows the configured business timezone', function () {
     Carbon::setTestNow('2026-10-15 12:00:00');
     config(['payments.business_timezone' => 'UTC']);
+    app()->forgetInstance(BusinessTimezone::class);
 
     $response = $this->postJson('/api/payments', PaymentRows::paymentBody(), ['Idempotency-Key' => 'key-001']);
 

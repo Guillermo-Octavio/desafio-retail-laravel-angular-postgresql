@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Payments\Application\BusinessTimezone;
 use App\Payments\Application\Ports\Sleeper;
 use App\Payments\Application\RetryPolicy;
 use App\Payments\Domain\DeclineReason;
 use App\Payments\Domain\Rules\BusinessRules;
+use App\Payments\Infrastructure\Exceptions\InvalidBusinessTimezone;
+use App\Payments\Infrastructure\PaymentsServiceProvider;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Sleep;
 use Tests\Support\PaymentFixtures;
@@ -46,9 +49,23 @@ it('evaluates card expiry in the configured business timezone', function () {
 
     $santiago = app(BusinessRules::class)->firstViolation(PaymentFixtures::paymentRequest(expiryMonth: 10, expiryYear: 2026));
     app()->forgetInstance(BusinessRules::class);
+    app()->forgetInstance(BusinessTimezone::class);
     config(['payments.business_timezone' => 'UTC']);
     $utc = app(BusinessRules::class)->firstViolation(PaymentFixtures::paymentRequest(expiryMonth: 10, expiryYear: 2026));
 
     expect($santiago)->toBeNull()
         ->and($utc)->toBe(DeclineReason::CARD_EXPIRED);
 });
+
+it('shares a single business timezone built from the configuration', function () {
+    $timezone = app(BusinessTimezone::class);
+
+    expect($timezone->zone->getName())->toBe('America/Santiago')
+        ->and(app(BusinessTimezone::class))->toBe($timezone);
+});
+
+it('refuses to start with a business timezone that does not exist', function (string $timezone) {
+    config(['payments.business_timezone' => $timezone]);
+
+    (new PaymentsServiceProvider(app()))->boot();
+})->with(['America/Santigo', ''])->throws(InvalidBusinessTimezone::class);

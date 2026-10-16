@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Payments\Infrastructure;
 
+use App\Payments\Application\BusinessTimezone;
 use App\Payments\Application\Ports\LogContext;
 use App\Payments\Application\Ports\MonotonicTimer;
 use App\Payments\Application\Ports\RequestFingerprinter;
@@ -18,6 +19,7 @@ use App\Payments\Domain\Ports\TransactionRepository;
 use App\Payments\Domain\Rules\AmountLimits;
 use App\Payments\Domain\Rules\BusinessRules;
 use App\Payments\Infrastructure\Acquirer\HttpAcquirerGateway;
+use App\Payments\Infrastructure\Exceptions\InvalidBusinessTimezone;
 use App\Payments\Infrastructure\Logging\LaravelLogContext;
 use App\Payments\Infrastructure\Persistence\EloquentTransactionQueries;
 use App\Payments\Infrastructure\Persistence\EloquentTransactionRepository;
@@ -45,6 +47,10 @@ final class PaymentsServiceProvider extends ServiceProvider
 
     public function register(): void
     {
+        $this->app->singleton(BusinessTimezone::class, fn () => new BusinessTimezone(
+            new DateTimeZone(self::businessTimezoneName()),
+        ));
+
         $this->app->singleton(RetryPolicy::class, fn () => new RetryPolicy(
             (int) config('payments.acquirer.max_attempts'),
             (int) config('payments.acquirer.initial_backoff_ms'),
@@ -54,7 +60,7 @@ final class PaymentsServiceProvider extends ServiceProvider
 
         $this->app->singleton(BusinessRules::class, fn ($app) => BusinessRules::standard(
             $app->make(Clock::class),
-            new DateTimeZone((string) config('payments.business_timezone')),
+            $app->make(BusinessTimezone::class)->zone,
             new AmountLimits(config('payments.amount_limits')),
         ));
 
@@ -68,5 +74,24 @@ final class PaymentsServiceProvider extends ServiceProvider
         $this->app->singleton(RequestFingerprinter::class, fn () => new HmacRequestFingerprinter(
             (string) config('app.key'),
         ));
+    }
+
+    /**
+     * Fails at startup, not on every payment, when the configured timezone does not exist.
+     */
+    public function boot(): void
+    {
+        self::businessTimezoneName();
+    }
+
+    private static function businessTimezoneName(): string
+    {
+        $name = (string) config('payments.business_timezone');
+
+        if (! in_array($name, DateTimeZone::listIdentifiers(), true)) {
+            throw InvalidBusinessTimezone::named($name);
+        }
+
+        return $name;
     }
 }
