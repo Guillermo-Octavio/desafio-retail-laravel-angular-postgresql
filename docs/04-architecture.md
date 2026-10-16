@@ -207,7 +207,11 @@ en su caché local.
   workers (`PHP_CLI_SERVER_WORKERS`), suficiente para un simulador.
 - Sus rutas se registran solo cuando `ACQUIRER_MOCK_ENABLED=true`, variable que únicamente tiene
   ese contenedor. En la API las rutas no existen (DA-03).
-- No usa la base de datos.
+- No usa la base de datos ni ejecuta migraciones.
+- Corre con `--no-reload`: sin esa opción, `artisan serve` solo pasa a sus workers una lista fija de
+  variables de entorno cuando existe `api/.env`, y `ACQUIRER_MOCK_ENABLED` no llegaría.
+- El cliente de la API no sigue redirecciones del adquirente: una redirección reenviaría los datos
+  de tarjeta a otro host. Una respuesta `3xx` se trata como error de integración.
 
 ### 5.3 Política de reintentos
 

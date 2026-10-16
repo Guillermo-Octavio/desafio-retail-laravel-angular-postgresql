@@ -26,12 +26,19 @@ Fuera de alcance: los endpoints de pagos, el manejo central de errores y los log
 
 | ID | Specs | Ruta | Estado | Evidencia |
 |----|-------|------|--------|-----------|
-| T1 | S1 | inline | pendiente | |
-| T2 | S2 | inline | pendiente | |
-| T3 | S3 | inline | pendiente | |
+| T1 | S1 | inline | hecho | e130cec; RED: 8 pruebas fallando |
+| T2 | S2 | inline | hecho | 96ba466; prueba de humo con las 5 tarjetas en el contenedor; el gateway responde `404` en `/acquirer/authorize` |
+| T3 | S3 | inline | hecho | ab9e6d7; RED: 18 pruebas fallando; de punta a punta contra el mock real y con el mock detenido (`TIMEOUT` en unos 1,2 s) |
 
 Ruta inline: tareas pequeñas y secuenciales; no hay motivo de delegación.
 
 ## Log
 
 - **L1** (2026-10-16) Propuesta aprobada: "ok". Alcance: la unidad A (`acquirer-integration`); la unidad B (`payments-http`) queda para después.
+- **L2** Hallazgo en T2: con `api/.env` presente, `artisan serve` anula las variables que no están en su lista fija, y las rutas del mock no se registraban (`404`). Se corrigió con `--no-reload`. El `entrypoint` ya no ejecuta migraciones en el mock.
+- **L3** Hallazgo en T3: el cliente HTTP seguía las redirecciones, y una respuesta `302` reenviaba los datos de tarjeta a otro host. Ahora usa `withoutRedirecting()`, con una prueba que verifica que se envía una sola solicitud.
+- **L4** Observaciones de GGA:
+  - El controller del mock ya no tiene `match`, porque `AcquirerSimulator` devuelve `MockResponse`.
+  - Los textos de protocolo ahora son constantes.
+  - Sin aplicar: el entero estricto en el request del mock (es solo un simulador) y la detección del timeout por el mensaje de cURL. Si falla, el error queda como `CONNECTION_FAILED`, que también es temporal.
+- **L5** Se documentaron en la sección 5.2 de la arquitectura `--no-reload` y el no seguir redirecciones. Verificación local: 270 pruebas aprobadas.
