@@ -131,3 +131,25 @@ it('never follows a redirect, so the card data is not sent to another host', fun
 
     Http::assertSentCount(1);
 });
+
+it('applies the configured connection and request timeouts', function (int $connectTimeout, int $timeout) {
+    config(['payments.acquirer.connect_timeout_seconds' => $connectTimeout, 'payments.acquirer.timeout_seconds' => $timeout]);
+    $sentOptions = [];
+    Http::globalMiddleware(function (callable $handler) use (&$sentOptions) {
+        return function ($request, array $options) use ($handler, &$sentOptions) {
+            $sentOptions = $options;
+
+            return $handler($request, $options);
+        };
+    });
+    Http::fake([$this->authorizeUrl => Http::response(['status' => 'APPROVED', 'authorization_code' => 'A1B2C3'])]);
+
+    app(AcquirerGateway::class)->authorize(PaymentFixtures::acquirerRequest());
+
+    expect($sentOptions['connect_timeout'])->toBe($connectTimeout)
+        ->and($sentOptions['timeout'])->toBe($timeout)
+        ->and($sentOptions['allow_redirects'])->toBeFalse();
+})->with([
+    'documented values' => [1, 2],
+    'other configured values' => [3, 7],
+]);
