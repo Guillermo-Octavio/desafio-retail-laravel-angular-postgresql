@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Support;
 
 use App\Payments\Application\ProcessPaymentCommand;
+use App\Payments\Domain\Acquirer\AcquirerRequest;
 use App\Payments\Domain\Card\CardBrand;
 use App\Payments\Domain\Card\CardDetails;
 use App\Payments\Domain\Card\CardExpiry;
@@ -76,6 +77,17 @@ final class PaymentFixtures
             new Money($amount, $currency),
             new CardDetails(new CardNumber($cardNumber), new CardExpiry($expiryMonth, $expiryYear), new Cvv($cvv)),
             $holderName,
+        );
+    }
+
+    public static function acquirerRequest(string $cardNumber = self::VALID_CARD): AcquirerRequest
+    {
+        return new AcquirerRequest(
+            new TransactionId('0199f0c2-6a1e-7c3a-9b2f-5d1e8a4c7b10'),
+            new MerchantId('merchant-001'),
+            new Money(15000, Currency::CLP),
+            new CardDetails(new CardNumber($cardNumber), new CardExpiry(12, 2030), new Cvv('123')),
+            new CorrelationId('corr-123'),
         );
     }
 

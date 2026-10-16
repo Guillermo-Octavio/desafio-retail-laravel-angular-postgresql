@@ -8,14 +8,17 @@ use App\Payments\Application\Ports\MonotonicTimer;
 use App\Payments\Application\Ports\RequestFingerprinter;
 use App\Payments\Application\Ports\Sleeper;
 use App\Payments\Application\RetryPolicy;
+use App\Payments\Domain\Ports\AcquirerGateway;
 use App\Payments\Domain\Ports\Clock;
 use App\Payments\Domain\Ports\IdempotencyStore;
 use App\Payments\Domain\Ports\TransactionIdGenerator;
 use App\Payments\Domain\Ports\TransactionRepository;
 use App\Payments\Domain\Rules\AmountLimits;
 use App\Payments\Domain\Rules\BusinessRules;
+use App\Payments\Infrastructure\Acquirer\HttpAcquirerGateway;
 use App\Payments\Infrastructure\Persistence\EloquentTransactionRepository;
 use App\Payments\Infrastructure\Persistence\PostgresIdempotencyStore;
+use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\ServiceProvider;
 use Random\Randomizer;
 
@@ -45,6 +48,13 @@ final class PaymentsServiceProvider extends ServiceProvider
         $this->app->singleton(BusinessRules::class, fn ($app) => BusinessRules::standard(
             $app->make(Clock::class),
             new AmountLimits(config('payments.amount_limits')),
+        ));
+
+        $this->app->bind(AcquirerGateway::class, fn ($app) => new HttpAcquirerGateway(
+            $app->make(HttpFactory::class),
+            (string) config('payments.acquirer.base_url'),
+            (int) config('payments.acquirer.connect_timeout_seconds'),
+            (int) config('payments.acquirer.timeout_seconds'),
         ));
 
         $this->app->singleton(RequestFingerprinter::class, fn () => new HmacRequestFingerprinter(
