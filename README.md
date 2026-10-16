@@ -212,8 +212,8 @@ docker compose exec -T web npx ng test --watch=false
 ### Colección de Postman
 
 [`postman/payments-api.postman_collection.json`](postman/payments-api.postman_collection.json)
-recorre la API por historia de usuario (HU-01 a HU-11, más el formato de errores). Son 48
-solicitudes con 182 verificaciones automáticas contra el stack levantado.
+recorre la API por historia de usuario (HU-01 a HU-11, más el formato de errores), con
+verificaciones automáticas en cada solicitud contra el stack levantado.
 
 - **Postman:** importar el archivo y ejecutar la colección completa, en orden, con el Collection
   Runner. La variable `baseUrl` apunta a `http://localhost:8080`.

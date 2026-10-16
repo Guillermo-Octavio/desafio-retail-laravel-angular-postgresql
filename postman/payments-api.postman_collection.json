@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Payment Processing Service",
-    "description": "Automated checks of the payments API, organized by user story (docs/02-user-stories.md). Run the whole collection in order with the Collection Runner or Newman: the first request prepares a unique run id, and later requests reuse ids saved by earlier ones. Requires the stack running (docker compose up -d) at {{baseUrl}}.",
+    "description": "Automated checks of the payments API, organized by user story (docs/02-user-stories.md). Run the whole collection in order with the Collection Runner or Newman: the first request prepares a unique run id, and later requests reuse ids saved by earlier ones. Special test cards drive the Acquirer Mock (docs/01-requirements-analysis.md, section 7). Requires the stack running (docker compose up -d) at {{baseUrl}}.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -10,7 +10,9 @@
       "script": {
         "type": "text/javascript",
         "exec": [
-          "// Runs before every request, so a single request also works without running the whole collection.",
+          "// Runs before every request. Most requests also work alone; the replay, detail and history",
+          "// requests read ids saved by earlier requests, so they need their folder's earlier requests first.",
+          "// Dates are computed in UTC because the API evaluates card expiry in UTC (DD-06).",
           "if (!pm.collectionVariables.get('runId')) {",
           "  pm.collectionVariables.set('runId', `${Date.now()}`);",
           "}",
@@ -145,7 +147,7 @@
                   "pm.test('responds 201', () => pm.response.to.have.status(201));",
                   "",
                   "pm.test('status is APPROVED', () => pm.expect(pm.response.json().status).to.eql('APPROVED'));",
-                  "pm.test('decline_reason is None', () => pm.expect(pm.response.json().decline_reason).to.eql(null));",
+                  "pm.test('decline_reason is null', () => pm.expect(pm.response.json().decline_reason).to.eql(null));",
                   "",
                   "const payment = pm.response.json();",
                   "pm.test('returns every field of HU-01', () => pm.expect(payment).to.have.all.keys('transaction_id', 'merchant_id', 'amount', 'currency', 'status', 'decline_reason', 'card', 'created_at', 'updated_at'));",
@@ -919,7 +921,7 @@
                   "pm.test('responds 201', () => pm.response.to.have.status(201));",
                   "",
                   "pm.test('status is APPROVED', () => pm.expect(pm.response.json().status).to.eql('APPROVED'));",
-                  "pm.test('decline_reason is None', () => pm.expect(pm.response.json().decline_reason).to.eql(null));"
+                  "pm.test('decline_reason is null', () => pm.expect(pm.response.json().decline_reason).to.eql(null));"
                 ]
               }
             }
@@ -972,7 +974,7 @@
                   "pm.test('responds 201', () => pm.response.to.have.status(201));",
                   "",
                   "pm.test('status is DECLINED', () => pm.expect(pm.response.json().status).to.eql('DECLINED'));",
-                  "pm.test('decline_reason is AMOUNT_LIMIT_EXCEEDED', () => pm.expect(pm.response.json().decline_reason).to.eql(\"AMOUNT_LIMIT_EXCEEDED\"));"
+                  "pm.test('decline_reason is \"AMOUNT_LIMIT_EXCEEDED\"', () => pm.expect(pm.response.json().decline_reason).to.eql(\"AMOUNT_LIMIT_EXCEEDED\"));"
                 ]
               }
             }
@@ -1025,7 +1027,7 @@
                   "pm.test('responds 201', () => pm.response.to.have.status(201));",
                   "",
                   "pm.test('status is APPROVED', () => pm.expect(pm.response.json().status).to.eql('APPROVED'));",
-                  "pm.test('decline_reason is None', () => pm.expect(pm.response.json().decline_reason).to.eql(null));",
+                  "pm.test('decline_reason is null', () => pm.expect(pm.response.json().decline_reason).to.eql(null));",
                   "",
                   "pm.test('returns the amount in cents', () => pm.expect(pm.response.json()).to.include({ amount: 1050, currency: 'USD' }));"
                 ]
@@ -1080,7 +1082,7 @@
                   "pm.test('responds 201', () => pm.response.to.have.status(201));",
                   "",
                   "pm.test('status is APPROVED', () => pm.expect(pm.response.json().status).to.eql('APPROVED'));",
-                  "pm.test('decline_reason is None', () => pm.expect(pm.response.json().decline_reason).to.eql(null));"
+                  "pm.test('decline_reason is null', () => pm.expect(pm.response.json().decline_reason).to.eql(null));"
                 ]
               }
             }
@@ -1133,7 +1135,7 @@
                   "pm.test('responds 201', () => pm.response.to.have.status(201));",
                   "",
                   "pm.test('status is DECLINED', () => pm.expect(pm.response.json().status).to.eql('DECLINED'));",
-                  "pm.test('decline_reason is AMOUNT_LIMIT_EXCEEDED', () => pm.expect(pm.response.json().decline_reason).to.eql(\"AMOUNT_LIMIT_EXCEEDED\"));"
+                  "pm.test('decline_reason is \"AMOUNT_LIMIT_EXCEEDED\"', () => pm.expect(pm.response.json().decline_reason).to.eql(\"AMOUNT_LIMIT_EXCEEDED\"));"
                 ]
               }
             }
@@ -1186,7 +1188,7 @@
                   "pm.test('responds 201', () => pm.response.to.have.status(201));",
                   "",
                   "pm.test('status is DECLINED', () => pm.expect(pm.response.json().status).to.eql('DECLINED'));",
-                  "pm.test('decline_reason is INVALID_CARD_NUMBER', () => pm.expect(pm.response.json().decline_reason).to.eql(\"INVALID_CARD_NUMBER\"));"
+                  "pm.test('decline_reason is \"INVALID_CARD_NUMBER\"', () => pm.expect(pm.response.json().decline_reason).to.eql(\"INVALID_CARD_NUMBER\"));"
                 ]
               }
             }
@@ -1239,7 +1241,7 @@
                   "pm.test('responds 201', () => pm.response.to.have.status(201));",
                   "",
                   "pm.test('status is DECLINED', () => pm.expect(pm.response.json().status).to.eql('DECLINED'));",
-                  "pm.test('decline_reason is CARD_EXPIRED', () => pm.expect(pm.response.json().decline_reason).to.eql(\"CARD_EXPIRED\"));"
+                  "pm.test('decline_reason is \"CARD_EXPIRED\"', () => pm.expect(pm.response.json().decline_reason).to.eql(\"CARD_EXPIRED\"));"
                 ]
               }
             }
@@ -1292,7 +1294,7 @@
                   "pm.test('responds 201', () => pm.response.to.have.status(201));",
                   "",
                   "pm.test('status is APPROVED', () => pm.expect(pm.response.json().status).to.eql('APPROVED'));",
-                  "pm.test('decline_reason is None', () => pm.expect(pm.response.json().decline_reason).to.eql(null));"
+                  "pm.test('decline_reason is null', () => pm.expect(pm.response.json().decline_reason).to.eql(null));"
                 ]
               }
             }
@@ -1332,6 +1334,7 @@
                 "payments"
               ]
             },
+            "description": "Test card 4000000000000002: the Acquirer Mock always declines it for insufficient funds (requirements analysis, section 7).",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4000000000000002\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
@@ -1351,7 +1354,7 @@
                   "pm.test('responds 201', () => pm.response.to.have.status(201));",
                   "",
                   "pm.test('status is DECLINED', () => pm.expect(pm.response.json().status).to.eql('DECLINED'));",
-                  "pm.test('decline_reason is INSUFFICIENT_FUNDS', () => pm.expect(pm.response.json().decline_reason).to.eql(\"INSUFFICIENT_FUNDS\"));"
+                  "pm.test('decline_reason is \"INSUFFICIENT_FUNDS\"', () => pm.expect(pm.response.json().decline_reason).to.eql(\"INSUFFICIENT_FUNDS\"));"
                 ]
               }
             }
@@ -1395,6 +1398,7 @@
                 "payments"
               ]
             },
+            "description": "Test card 4000000000000259: the Acquirer Mock answers 503 on the first attempt of each transaction and approves the retry.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4000000000000259\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
@@ -1414,7 +1418,7 @@
                   "pm.test('responds 201', () => pm.response.to.have.status(201));",
                   "",
                   "pm.test('status is APPROVED', () => pm.expect(pm.response.json().status).to.eql('APPROVED'));",
-                  "pm.test('decline_reason is None', () => pm.expect(pm.response.json().decline_reason).to.eql(null));",
+                  "pm.test('decline_reason is null', () => pm.expect(pm.response.json().decline_reason).to.eql(null));",
                   "",
                   "pm.collectionVariables.set('retriedTransactionId', pm.response.json().transaction_id);"
                 ]
@@ -1450,6 +1454,7 @@
                 "payments"
               ]
             },
+            "description": "Test card 4000000000000119: the Acquirer Mock answers 503 on every attempt, so the 3 attempts run out.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4000000000000119\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
@@ -1469,7 +1474,7 @@
                   "pm.test('responds 201', () => pm.response.to.have.status(201));",
                   "",
                   "pm.test('status is FAILED', () => pm.expect(pm.response.json().status).to.eql('FAILED'));",
-                  "pm.test('decline_reason is ACQUIRER_UNAVAILABLE', () => pm.expect(pm.response.json().decline_reason).to.eql(\"ACQUIRER_UNAVAILABLE\"));"
+                  "pm.test('decline_reason is \"ACQUIRER_UNAVAILABLE\"', () => pm.expect(pm.response.json().decline_reason).to.eql(\"ACQUIRER_UNAVAILABLE\"));"
                 ]
               }
             }
@@ -1561,6 +1566,7 @@
                 "payments"
               ]
             },
+            "description": "Needs HU-01 'Approved payment' first: it replays that payment.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
@@ -1717,7 +1723,8 @@
                 "payments",
                 "{{approvedTransactionId}}"
               ]
-            }
+            },
+            "description": "Needs HU-01 'Approved payment' first."
           },
           "event": [
             {
@@ -1855,7 +1862,10 @@
                   "",
                   "const page = pm.response.json();",
                   "pm.test('only lists declined payments of the merchant', () => page.data.forEach((t) => pm.expect(t).to.include({ merchant_id: `merchant-${pm.collectionVariables.get('runId')}`, status: 'DECLINED' })));",
-                  "pm.test('finds the declined payments of this run', () => pm.expect(page.meta.total).to.be.at.least(5));",
+                  "// Five earlier requests of this run end DECLINED: CLP and USD over the limit, the Luhn failure,",
+                  "// the expired card (HU-03) and the insufficient funds card (HU-04).",
+                  "const DECLINED_IN_THIS_RUN = 5;",
+                  "pm.test('finds the declined payments of this run', () => pm.expect(page.meta.total).to.be.at.least(DECLINED_IN_THIS_RUN));",
                   "pm.test('lists items without events', () => pm.expect(page.data[0]).to.not.have.property('events'));"
                 ]
               }
@@ -2142,7 +2152,8 @@
                 "payments",
                 "{{retriedTransactionId}}"
               ]
-            }
+            },
+            "description": "Needs HU-05 'Recovers after one temporary error' first."
           },
           "event": [
             {
@@ -2153,13 +2164,15 @@
                   "pm.test('responds 200', () => pm.response.to.have.status(200));",
                   "",
                   "const events = pm.response.json().events;",
-                  "pm.test('has the five events in order', () => pm.expect(events.map((e) => [e.type, e.from_status, e.to_status, e.metadata && e.metadata.outcome])).to.eql([",
-                  "  ['STATUS_CHANGED', null, 'PENDING', undefined],",
-                  "  ['STATUS_CHANGED', 'PENDING', 'PROCESSING', undefined],",
+                  "const orNull = (value) => (value === undefined ? null : value);",
+                  "const actual = events.map((e) => [e.type, e.from_status, e.to_status, orNull(e.metadata && e.metadata.outcome)]);",
+                  "pm.test('has the five events in order', () => pm.expect(actual).to.eql([",
+                  "  ['STATUS_CHANGED', null, 'PENDING', null],",
+                  "  ['STATUS_CHANGED', 'PENDING', 'PROCESSING', null],",
                   "  ['ACQUIRER_ATTEMPT', null, null, 'TEMPORARY_ERROR'],",
                   "  ['ACQUIRER_ATTEMPT', null, null, 'APPROVED'],",
-                  "  ['STATUS_CHANGED', 'PROCESSING', 'APPROVED', undefined],",
-                  "].map((row) => row.map((value) => (value === undefined ? null : value)))));",
+                  "  ['STATUS_CHANGED', 'PROCESSING', 'APPROVED', null],",
+                  "]));",
                   "pm.test('records the error of the failed attempt', () => pm.expect(events[2].metadata).to.include({ attempt: 1, error_code: 'HTTP_503' }));",
                   "pm.test('every event has the correlation id of the request', () => events.forEach((e) => pm.expect(e.correlation_id).to.eql(`corr-retry-${pm.collectionVariables.get('runId')}`)));"
                 ]
