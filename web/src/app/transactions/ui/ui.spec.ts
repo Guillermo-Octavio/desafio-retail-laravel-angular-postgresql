@@ -97,6 +97,8 @@ describe('TransactionTable', () => {
       '/transactions/01a14306-0000-7000-8000-000000000002',
     );
     expect(element.querySelector('caption')).not.toBeNull();
+    expect(element.querySelector('thead')?.textContent).toContain('Created (Santiago)');
+    expect(rows[0].textContent).toContain('2026-10-15 09:00:00');
     expect(
       [...element.querySelectorAll('th')].every((header) => header.getAttribute('scope') === 'col'),
     ).toBe(true);
@@ -185,6 +187,9 @@ describe('TransactionDetail', () => {
     expect(events[3]).toContain('Attempt 2: APPROVED');
     expect(events[4]).toContain('PROCESSING → APPROVED');
     expect(element.textContent).toContain('corr-123');
+    expect(element.textContent).toContain('Created (Santiago)');
+    expect(element.textContent).toContain('2026-10-15 09:00:00');
+    expect(element.querySelector('ol li time')?.textContent?.trim()).toBe('09:00:00.000');
     await expectNoAxeViolations(element);
   });
 });

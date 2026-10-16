@@ -1,13 +1,13 @@
-import { DatePipe } from '@angular/common';
 import { Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { BUSINESS_TIME_ZONE_LABEL, formatBusinessDateTime } from '../data/business-time';
 import { formatAmount } from '../data/money';
 import { TransactionSummary } from '../data/transaction.models';
 import { StatusBadge } from './status-badge';
 
 @Component({
   selector: 'app-transaction-table',
-  imports: [DatePipe, RouterLink, StatusBadge],
+  imports: [RouterLink, StatusBadge],
   template: `
     <table class="w-full border-collapse text-left text-sm">
       <caption class="sr-only">
@@ -21,7 +21,7 @@ import { StatusBadge } from './status-badge';
           <th scope="col" class="py-2 pr-4">Status</th>
           <th scope="col" class="py-2 pr-4">Reason</th>
           <th scope="col" class="py-2 pr-4">Card</th>
-          <th scope="col" class="py-2">Created (UTC)</th>
+          <th scope="col" class="py-2">Created ({{ timeZone }})</th>
         </tr>
       </thead>
       <tbody>
@@ -45,7 +45,7 @@ import { StatusBadge } from './status-badge';
               {{ transaction.card.last4 }}
             </td>
             <td class="py-2 tabular-nums">
-              {{ transaction.created_at | date: 'yyyy-MM-dd HH:mm:ss' : 'UTC' }}
+              {{ dateTime(transaction.created_at) }}
             </td>
           </tr>
         }
@@ -55,6 +55,12 @@ import { StatusBadge } from './status-badge';
 })
 export class TransactionTable {
   readonly transactions = input.required<TransactionSummary[]>();
+
+  protected readonly timeZone = BUSINESS_TIME_ZONE_LABEL;
+
+  protected dateTime(isoInstant: string): string {
+    return formatBusinessDateTime(isoInstant);
+  }
 
   protected amount(transaction: TransactionSummary): string {
     return formatAmount(transaction.amount, transaction.currency);
