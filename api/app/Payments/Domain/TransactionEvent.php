@@ -8,7 +8,7 @@ use DateTimeImmutable;
 
 /**
  * Immutable record of something that happened to a transaction. Only the aggregate
- * creates events (DD-01).
+ * creates events (DD-01) and numbers them, so saving the same event twice is detectable.
  */
 final readonly class TransactionEvent
 {
@@ -16,6 +16,7 @@ final readonly class TransactionEvent
      * @param  array<string, int|string>  $metadata
      */
     private function __construct(
+        public int $sequence,
         public EventType $type,
         public ?TransactionStatus $fromStatus,
         public ?TransactionStatus $toStatus,
@@ -26,16 +27,18 @@ final readonly class TransactionEvent
     ) {}
 
     public static function statusChanged(
+        int $sequence,
         ?TransactionStatus $from,
         TransactionStatus $to,
         ?DeclineReason $reason,
         CorrelationId $correlationId,
         DateTimeImmutable $occurredAt,
     ): self {
-        return new self(EventType::STATUS_CHANGED, $from, $to, $reason, [], $correlationId, $occurredAt);
+        return new self($sequence, EventType::STATUS_CHANGED, $from, $to, $reason, [], $correlationId, $occurredAt);
     }
 
     public static function acquirerAttempt(
+        int $sequence,
         int $attempt,
         AcquirerOutcome $outcome,
         int $durationMs,
@@ -49,6 +52,6 @@ final readonly class TransactionEvent
             $metadata['error_code'] = $errorCode;
         }
 
-        return new self(EventType::ACQUIRER_ATTEMPT, null, null, null, $metadata, $correlationId, $occurredAt);
+        return new self($sequence, EventType::ACQUIRER_ATTEMPT, null, null, null, $metadata, $correlationId, $occurredAt);
     }
 }

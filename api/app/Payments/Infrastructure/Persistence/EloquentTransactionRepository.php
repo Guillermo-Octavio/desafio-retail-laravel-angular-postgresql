@@ -16,6 +16,8 @@ final readonly class EloquentTransactionRepository implements TransactionReposit
 {
     private const array MUTABLE_COLUMNS = ['status', 'decline_reason', 'acquirer_reference', 'updated_at'];
 
+    private const array EVENT_IDENTITY = ['transaction_id', 'sequence'];
+
     public function __construct(private Clock $clock) {}
 
     public function save(Transaction $transaction): void
@@ -26,10 +28,12 @@ final readonly class EloquentTransactionRepository implements TransactionReposit
             TransactionRecord::query()->upsert([$this->transactionRow($transaction)], ['id'], self::MUTABLE_COLUMNS);
 
             if ($events !== []) {
-                TransactionEventRecord::query()->insert(array_map(
+                // An event saved before (a retry, or saves inside an outer transaction) is skipped.
+                // insertOrIgnoreReturning is used for its conflict target; insertOrIgnore has none.
+                TransactionEventRecord::query()->toBase()->insertOrIgnoreReturning(array_map(
                     fn (TransactionEvent $event) => $this->eventRow($transaction, $event),
                     $events,
-                ));
+                ), ['id'], self::EVENT_IDENTITY);
             }
         });
 
@@ -59,12 +63,13 @@ final readonly class EloquentTransactionRepository implements TransactionReposit
     }
 
     /**
-     * @return array<string, string|null>
+     * @return array<string, int|string|null>
      */
     private function eventRow(Transaction $transaction, TransactionEvent $event): array
     {
         return [
             'transaction_id' => $transaction->id()->value,
+            'sequence' => $event->sequence,
             'type' => $event->type->value,
             'from_status' => $event->fromStatus?->value,
             'to_status' => $event->toStatus?->value,

@@ -27,6 +27,8 @@ final class Transaction
     /** @var list<TransactionEvent> */
     private array $recordedEvents = [];
 
+    private int $lastEventSequence = 0;
+
     private function __construct(
         private readonly TransactionId $id,
         private readonly MerchantId $merchantId,
@@ -46,6 +48,7 @@ final class Transaction
     ): self {
         $transaction = new self($id, $merchantId, $money, $card, $correlationId, $occurredAt);
         $transaction->recordedEvents[] = TransactionEvent::statusChanged(
+            ++$transaction->lastEventSequence,
             null,
             TransactionStatus::PENDING,
             null,
@@ -103,6 +106,7 @@ final class Transaction
         }
 
         $this->recordedEvents[] = TransactionEvent::acquirerAttempt(
+            ++$this->lastEventSequence,
             $attempt,
             $outcome,
             $durationMs,
@@ -182,6 +186,7 @@ final class Transaction
         }
 
         $this->recordedEvents[] = TransactionEvent::statusChanged(
+            ++$this->lastEventSequence,
             $this->status,
             $next,
             $reason,

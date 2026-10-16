@@ -42,6 +42,7 @@ final class PaymentRows
     {
         return [
             'transaction_id' => self::TRANSACTION_ID,
+            'sequence' => 1,
             'type' => 'STATUS_CHANGED',
             'from_status' => null,
             'to_status' => 'PENDING',

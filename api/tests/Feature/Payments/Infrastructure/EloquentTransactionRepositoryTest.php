@@ -146,3 +146,17 @@ it('keeps the events when an outer database transaction rolls back', function ()
     expect(array_column(StoredPayments::events(), 'to_status'))->toBe(['PENDING', 'DECLINED'])
         ->and($transaction->recordedEvents())->toBe([]);
 });
+
+it('never stores an event twice when saves share an outer transaction that commits', function () {
+    $transaction = PaymentFixtures::newTransaction();
+
+    DB::transaction(function () use ($transaction) {
+        $this->repository->save($transaction);
+        $transaction->startProcessing(PaymentFixtures::at('12:00:01'));
+        $this->repository->save($transaction);
+        $transaction->fail(DeclineReason::ACQUIRER_UNAVAILABLE, PaymentFixtures::at('12:00:02'));
+        $this->repository->save($transaction);
+    });
+
+    expect(array_column(StoredPayments::events(), 'to_status'))->toBe(['PENDING', 'PROCESSING', 'FAILED']);
+});

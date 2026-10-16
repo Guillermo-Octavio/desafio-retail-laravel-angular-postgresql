@@ -11,6 +11,7 @@ use App\Payments\Domain\Exceptions\InvalidAcquirerReference;
 use App\Payments\Domain\Exceptions\InvalidTransactionTransition;
 use App\Payments\Domain\Money;
 use App\Payments\Domain\Transaction;
+use App\Payments\Domain\TransactionEvent;
 use App\Payments\Domain\TransactionStatus;
 use Tests\Support\PaymentFixtures;
 
@@ -156,3 +157,13 @@ it('requires a positive attempt number and a non-negative duration', function (i
     'attempt zero' => [0, 10],
     'negative duration' => [1, -1],
 ])->throws(InvalidAcquirerAttempt::class);
+
+it('keeps numbering its events after the recorded ones are cleared', function () {
+    $transaction = PaymentFixtures::newTransaction();
+    $transaction->clearRecordedEvents();
+    $transaction->startProcessing(PaymentFixtures::at('12:00:01'));
+    $transaction->recordAcquirerAttempt(1, AcquirerOutcome::APPROVED, 85, null, PaymentFixtures::at('12:00:02'));
+    $transaction->approve('A1B2C3', PaymentFixtures::at('12:00:02'));
+
+    expect(array_map(fn (TransactionEvent $event) => $event->sequence, $transaction->recordedEvents()))->toBe([2, 3, 4]);
+});

@@ -288,6 +288,7 @@ erDiagram
     transaction_events {
         bigint id PK
         uuid transaction_id FK
+        int sequence
         varchar type
         varchar from_status
         varchar to_status
@@ -338,6 +339,7 @@ erDiagram
 |---------|------|------|-------|
 | `id` | `bigint` | No | PK autoincremental; define el orden de inserción. |
 | `transaction_id` | `uuid` | No | FK a `transactions`. |
+| `sequence` | `int` | No | Número del evento dentro de la transacción, asignado por el agregado. `UNIQUE (transaction_id, sequence)`: guardar dos veces el mismo evento no lo duplica. |
 | `type` | `varchar(32)` | No | `STATUS_CHANGED` o `ACQUIRER_ATTEMPT`. |
 | `from_status` | `varchar(16)` | Sí | Nulo en la creación y en `ACQUIRER_ATTEMPT`. |
 | `to_status` | `varchar(16)` | Sí | Nulo en `ACQUIRER_ATTEMPT`. |

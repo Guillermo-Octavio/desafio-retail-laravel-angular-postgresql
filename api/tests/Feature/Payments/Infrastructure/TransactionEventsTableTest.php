@@ -54,3 +54,10 @@ it('indexes the history of each transaction in insertion order', function () {
 
     expect($indexes)->toContain('(transaction_id, id)');
 });
+
+it('accepts each event number only once per transaction', function () {
+    DB::table('transaction_events')->insert(PaymentRows::event());
+
+    expect(fn () => DB::table('transaction_events')->insert(PaymentRows::event()))
+        ->toThrow(QueryException::class, 'violates unique constraint');
+});
