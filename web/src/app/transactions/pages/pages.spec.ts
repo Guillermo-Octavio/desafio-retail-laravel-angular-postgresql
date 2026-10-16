@@ -1,8 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { expectNoAxeViolations } from '../../../testing/axe';
+import { PALETTE } from '../../../testing/palette';
 import { FakeTransactionsApi, unavailable } from '../../../testing/fake-transactions-api';
 import {
   aTransaction,
@@ -10,7 +11,11 @@ import {
   aTransactionPage,
 } from '../../../testing/transaction.fixtures';
 import { routes } from '../../app.routes';
+import { TransactionPage } from '../data/transaction.models';
 import { TransactionsApi } from '../data/transactions-api';
+
+// Tailwind text-* classes that set a size or an alignment, not a color.
+const NON_COLOR_TOKENS = ['xs', 'sm', 'lg', 'xl', '2xl', 'left'];
 
 describe('Transactions pages (HU-12)', () => {
   let api: FakeTransactionsApi;
@@ -119,8 +124,93 @@ describe('Transactions pages (HU-12)', () => {
     element = await settle();
 
     expect(api.listCalls).toHaveLength(2);
-    expect(element.querySelector('[role="alert"]')).toBeNull();
+    expect(element.querySelector('[role="alert"]')?.textContent?.trim()).toBe('');
     expect(element.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(document.activeElement).toBe(element.querySelector('h1'));
+  });
+
+  it('keeps the page and the focus on the pagination while the next page loads', async () => {
+    const nextPage = new Subject<TransactionPage>();
+    api.listAnswer = (query) =>
+      query.page === 1 ? of(aTransactionPage([aTransaction()], 1, 3)) : nextPage;
+    let element = await open('/transactions');
+
+    const next = [...element.querySelectorAll('button')].find((button) =>
+      button.textContent?.includes('Next page'),
+    )!;
+    next.focus();
+    next.click();
+    // The second page never answers here, so the test waits for the navigation, not for stability.
+    await new Promise((resolve) => setTimeout(resolve));
+    harness.detectChanges();
+    element = harness.routeNativeElement as HTMLElement;
+
+    expect(api.listCalls.at(-1)?.page).toBe(2);
+    expect(element.querySelector('[role="status"]')?.textContent).toContain('Loading');
+    expect(element.querySelector('table')).not.toBeNull();
+    expect(element.querySelector('[aria-busy="true"]')).not.toBeNull();
+    expect(document.activeElement).toBe(next);
+  });
+
+  it('offers a way back to the first page when the URL points past the last one', async () => {
+    api.listAnswer = (query) =>
+      of(
+        query.page === 1
+          ? aTransactionPage([aTransaction()], 1, 1)
+          : { data: [], meta: { current_page: query.page, per_page: 20, total: 1, last_page: 1 } },
+      );
+    let element = await open('/transactions?status=APPROVED&page=5');
+
+    expect(element.querySelector('[role="status"]')?.textContent).toContain('past the last one');
+    element.querySelector<HTMLButtonElement>('[role="status"] button')!.click();
+    element = await settle();
+
+    expect(api.listCalls.at(-1)).toEqual({ merchantId: '', status: 'APPROVED', page: 1 });
+    expect(element.querySelectorAll('tbody tr')).toHaveLength(1);
+  });
+
+  it('retries loading a transaction after an error other than not found', async () => {
+    let element = await open('/transactions/01a14306-750b-7019-8c17-1cfe1d981425');
+
+    expect(element.querySelector('[role="alert"]')?.textContent).toContain('could not be loaded');
+
+    api.getAnswer = () => of(aTransactionDetails());
+    element.querySelector<HTMLButtonElement>('[role="alert"] button')!.click();
+    element = await settle();
+
+    expect(api.getCalls).toHaveLength(2);
+    expect(element.querySelectorAll('ol li')).toHaveLength(5);
+  });
+
+  it('only uses colors whose contrast is checked', async () => {
+    api.answerList(
+      aTransactionPage([
+        aTransaction(),
+        aTransaction({ transaction_id: 'b', status: 'DECLINED' }),
+        aTransaction({ transaction_id: 'c', status: 'FAILED' }),
+        aTransaction({ transaction_id: 'd', status: 'PENDING' }),
+        aTransaction({ transaction_id: 'e', status: 'PROCESSING' }),
+      ]),
+    );
+    api.getAnswer = (id) =>
+      id === 'missing' ? throwError(() => unavailable(404)) : throwError(() => unavailable());
+    const pages = [
+      await open('/transactions'),
+      await open('/transactions/missing'),
+      await open('/transactions/broken'),
+    ];
+    const used = pages.flatMap((element) =>
+      [...element.querySelectorAll('[class]')].flatMap((node) =>
+        [...node.classList].filter((name) => /^(text|bg)-[a-z]+-?\d*$/.test(name)),
+      ),
+    );
+    const colors = new Set(
+      used
+        .map((name) => name.replace(/^(text|bg)-/, ''))
+        .filter((color) => !NON_COLOR_TOKENS.includes(color)),
+    );
+
+    expect([...colors].filter((color) => !(color in PALETTE))).toEqual([]);
   });
 
   it('opens a transaction and shows its detail and its events in chronological order', async () => {

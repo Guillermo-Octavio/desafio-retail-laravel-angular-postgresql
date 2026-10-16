@@ -10,6 +10,9 @@ export const TRANSACTION_STATUSES = [
   'FAILED',
 ] as const;
 
+/** The API starts counting pages at 1 and uses it when no page is sent. */
+export const FIRST_PAGE = 1;
+
 export type TransactionStatus = (typeof TRANSACTION_STATUSES)[number];
 
 export type CurrencyCode = 'CLP' | 'USD';

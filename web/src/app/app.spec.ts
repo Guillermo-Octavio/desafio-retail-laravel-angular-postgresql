@@ -4,6 +4,10 @@ import { expectNoAxeViolations } from '../testing/axe';
 import { App } from './app';
 
 describe('App', () => {
+  afterEach(() =>
+    document.querySelectorAll('app-root, [ng-version]').forEach((node) => node.remove()),
+  );
+
   async function render(): Promise<HTMLElement> {
     TestBed.configureTestingModule({ imports: [App], providers: [provideRouter([])] });
     const fixture = TestBed.createComponent(App);

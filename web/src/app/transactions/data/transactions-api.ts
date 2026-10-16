@@ -1,11 +1,14 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Service } from '@angular/core';
 import { Observable } from 'rxjs';
-import { TransactionDetails, TransactionPage, TransactionQuery } from './transaction.models';
+import {
+  FIRST_PAGE,
+  TransactionDetails,
+  TransactionPage,
+  TransactionQuery,
+} from './transaction.models';
 
 const PAYMENTS_URL = '/api/payments';
-
-const FIRST_PAGE = 1;
 
 /** The only place that talks HTTP to the payments API; components never use HttpClient. */
 @Service()

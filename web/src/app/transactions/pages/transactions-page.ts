@@ -1,14 +1,25 @@
-import { Component, computed, inject, input } from '@angular/core';
+import {
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  input,
+  linkedSignal,
+  viewChild,
+} from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { TRANSACTION_STATUSES, TransactionQuery } from '../data/transaction.models';
+import {
+  FIRST_PAGE,
+  TRANSACTION_STATUSES,
+  TransactionPage,
+  TransactionQuery,
+} from '../data/transaction.models';
 import { TransactionsApi } from '../data/transactions-api';
 import { LoadState, LoadStateKind } from '../ui/load-state';
 import { Pagination } from '../ui/pagination';
 import { TransactionFilters, TransactionFiltersValue } from '../ui/transaction-filters';
 import { TransactionTable } from '../ui/transaction-table';
-
-const FIRST_PAGE = 1;
 
 /** Container: reads the filters from the URL, loads the page and coordinates the views (HU-12). */
 @Component({
@@ -16,7 +27,14 @@ const FIRST_PAGE = 1;
   imports: [LoadState, Pagination, TransactionFilters, TransactionTable],
   template: `
     <section class="flex flex-col gap-6" aria-labelledby="transactions-heading">
-      <h1 id="transactions-heading" class="text-2xl font-semibold text-slate-900">Transactions</h1>
+      <h1
+        #heading
+        id="transactions-heading"
+        tabindex="-1"
+        class="text-2xl font-semibold text-slate-900"
+      >
+        Transactions
+      </h1>
 
       <app-transaction-filters
         [merchantId]="query().merchantId"
@@ -24,10 +42,12 @@ const FIRST_PAGE = 1;
         (filtersChange)="applyFilters($event)"
       />
 
-      @if (loadState(); as state) {
-        <app-load-state [state]="state" (retry)="transactions.reload()" />
-      } @else if (page(); as page) {
-        <app-transaction-table [transactions]="page.data" />
+      <app-load-state [state]="loadState()" (retry)="retry()" (firstPage)="goToPage(firstPage)" />
+
+      @if (visiblePage(); as page) {
+        <div [attr.aria-busy]="transactions.isLoading()">
+          <app-transaction-table [transactions]="page.data" />
+        </div>
         <app-pagination
           [page]="page.meta.current_page"
           [lastPage]="page.meta.last_page"
@@ -45,6 +65,9 @@ export class TransactionsPage {
 
   private readonly api = inject(TransactionsApi);
   private readonly router = inject(Router);
+  private readonly heading = viewChild.required<ElementRef<HTMLElement>>('heading');
+
+  protected readonly firstPage = FIRST_PAGE;
 
   protected readonly query = computed<TransactionQuery>(() => ({
     merchantId: this.merchantIdParam() ?? '',
@@ -57,9 +80,15 @@ export class TransactionsPage {
     stream: ({ params }) => this.api.list(params),
   });
 
-  protected readonly page = computed(() =>
-    this.transactions.hasValue() ? this.transactions.value() : undefined,
-  );
+  // Keeps the last loaded page on screen while the next one loads, so the table and the
+  // pagination button the user just pressed (and its focus) stay in place.
+  private readonly lastLoaded = linkedSignal<
+    TransactionPage | undefined,
+    TransactionPage | undefined
+  >({
+    source: () => (this.transactions.hasValue() ? this.transactions.value() : undefined),
+    computation: (loaded, previous) => loaded ?? previous?.value,
+  });
 
   protected readonly loadState = computed<LoadStateKind | null>(() => {
     if (this.transactions.error()) {
@@ -70,7 +99,22 @@ export class TransactionsPage {
       return 'loading';
     }
 
-    return this.page()?.data.length === 0 ? 'empty' : null;
+    const page = this.lastLoaded();
+
+    if (page === undefined || page.data.length > 0) {
+      return null;
+    }
+
+    return page.meta.current_page > page.meta.last_page ? 'beyond-last-page' : 'empty';
+  });
+
+  protected readonly visiblePage = computed(() => {
+    const page = this.lastLoaded();
+    const state = this.loadState();
+
+    return page !== undefined && page.data.length > 0 && (state === null || state === 'loading')
+      ? page
+      : undefined;
   });
 
   protected applyFilters(filters: TransactionFiltersValue): void {
@@ -79,6 +123,12 @@ export class TransactionsPage {
 
   protected goToPage(page: number): void {
     this.navigate({ ...this.query(), page });
+  }
+
+  /** The Retry button disappears once the data loads, so the focus moves to a stable place first. */
+  protected retry(): void {
+    this.heading().nativeElement.focus();
+    this.transactions.reload();
   }
 
   private navigate(query: TransactionQuery): void {

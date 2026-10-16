@@ -8,13 +8,16 @@ export function describeEvent(event: TransactionEvent): string {
     return event.reason === null ? transition : `${transition} (${event.reason})`;
   }
 
-  const metadata = event.metadata;
+  const attempt = event.metadata?.['attempt'];
+  const outcome = event.metadata?.['outcome'];
 
-  if (metadata === null) {
+  if (attempt === undefined || outcome === undefined) {
     return 'Acquirer attempt';
   }
 
-  const attempt = `Attempt ${metadata['attempt']}: ${metadata['outcome']} in ${metadata['duration_ms']} ms`;
+  const duration = event.metadata?.['duration_ms'];
+  const errorCode = event.metadata?.['error_code'];
+  const timing = duration === undefined ? '' : ` in ${duration} ms`;
 
-  return metadata['error_code'] === undefined ? attempt : `${attempt} (${metadata['error_code']})`;
+  return `Attempt ${attempt}: ${outcome}${timing}${errorCode === undefined ? '' : ` (${errorCode})`}`;
 }

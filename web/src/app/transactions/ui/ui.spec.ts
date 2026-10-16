@@ -124,9 +124,14 @@ describe('Pagination', () => {
 });
 
 describe('LoadState', () => {
-  it('announces loading and empty results politely', async () => {
-    const { fixture, element } = render(LoadState, { state: 'loading' });
+  it('keeps both live regions in the page, so screen readers announce every change', async () => {
+    const { fixture, element } = render(LoadState, { state: null });
 
+    expect(element.querySelector('[role="status"]')?.textContent?.trim()).toBe('');
+    expect(element.querySelector('[role="alert"]')?.textContent?.trim()).toBe('');
+
+    fixture.componentRef.setInput('state', 'loading');
+    fixture.detectChanges();
     expect(element.querySelector('[role="status"]')?.textContent).toContain('Loading');
 
     fixture.componentRef.setInput('state', 'empty');
@@ -144,6 +149,18 @@ describe('LoadState', () => {
     element.querySelector('button')!.click();
 
     expect(retries).toBe(1);
+    await expectNoAxeViolations(element);
+  });
+
+  it('offers a way back when the page is past the last one', async () => {
+    const { fixture, element } = render(LoadState, { state: 'beyond-last-page' });
+    let requests = 0;
+    fixture.componentInstance.firstPage.subscribe(() => requests++);
+
+    expect(element.querySelector('[role="status"]')?.textContent).toContain('past the last one');
+    element.querySelector('button')!.click();
+
+    expect(requests).toBe(1);
     await expectNoAxeViolations(element);
   });
 });
