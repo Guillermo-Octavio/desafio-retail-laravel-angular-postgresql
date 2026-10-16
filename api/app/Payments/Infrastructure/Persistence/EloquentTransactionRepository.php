@@ -10,13 +10,10 @@ use App\Payments\Domain\Transaction;
 use App\Payments\Domain\TransactionEvent;
 use App\Payments\Infrastructure\Persistence\Models\TransactionEventRecord;
 use App\Payments\Infrastructure\Persistence\Models\TransactionRecord;
-use DateTimeInterface;
 use Illuminate\Support\Facades\DB;
 
 final readonly class EloquentTransactionRepository implements TransactionRepository
 {
-    private const string TIMESTAMP_FORMAT = 'Y-m-d H:i:s.uP';
-
     private const array MUTABLE_COLUMNS = ['status', 'decline_reason', 'acquirer_reference', 'updated_at'];
 
     public function __construct(private Clock $clock) {}
@@ -53,8 +50,8 @@ final readonly class EloquentTransactionRepository implements TransactionReposit
             'card_brand' => $transaction->card()->brand->value,
             'card_last4' => $transaction->card()->last4,
             'correlation_id' => $transaction->correlationId()->value,
-            'created_at' => $this->timestamp($transaction->createdAt()),
-            'updated_at' => $this->timestamp($this->clock->now()),
+            'created_at' => PostgresTimestamp::format($transaction->createdAt()),
+            'updated_at' => PostgresTimestamp::format($this->clock->now()),
         ];
     }
 
@@ -71,12 +68,7 @@ final readonly class EloquentTransactionRepository implements TransactionReposit
             'reason' => $event->reason?->value,
             'metadata' => $event->metadata === [] ? null : json_encode($event->metadata, JSON_THROW_ON_ERROR),
             'correlation_id' => $event->correlationId->value,
-            'occurred_at' => $this->timestamp($event->occurredAt),
+            'occurred_at' => PostgresTimestamp::format($event->occurredAt),
         ];
-    }
-
-    private function timestamp(DateTimeInterface $moment): string
-    {
-        return $moment->format(self::TIMESTAMP_FORMAT);
     }
 }
