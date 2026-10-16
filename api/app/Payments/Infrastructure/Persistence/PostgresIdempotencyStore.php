@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Payments\Infrastructure\Persistence;
 
+use App\Payments\Domain\Exceptions\IdempotencyKeyNotReserved;
 use App\Payments\Domain\Idempotency\IdempotencyKey;
 use App\Payments\Domain\Idempotency\IdempotencyReservation;
 use App\Payments\Domain\Idempotency\RequestFingerprint;
@@ -18,29 +19,32 @@ use Illuminate\Database\Eloquent\Builder;
 
 final readonly class PostgresIdempotencyStore implements IdempotencyStore
 {
+    private const array UNIQUE_KEY = ['merchant_id', 'idempotency_key'];
+
     public function __construct(private Clock $clock) {}
 
     /**
-     * INSERT ... ON CONFLICT DO NOTHING: of two concurrent requests only one inserts the row,
-     * and the other reads the existing one (DA-06).
+     * INSERT ... ON CONFLICT (merchant_id, idempotency_key) DO NOTHING: of two concurrent
+     * requests only one inserts the row, and the other reads the existing one (DA-06).
      */
     public function reserve(MerchantId $merchantId, IdempotencyKey $key, RequestFingerprint $fingerprint): IdempotencyReservation
     {
         $now = $this->now();
-        $inserted = IdempotencyKeyRecord::query()->insertOrIgnore([
+        $inserted = IdempotencyKeyRecord::query()->toBase()->insertOrIgnoreReturning([
             'merchant_id' => $merchantId->value,
             'idempotency_key' => $key->value,
             'request_fingerprint' => $fingerprint->value,
             'status' => IdempotencyKeyStatus::IN_PROGRESS->value,
             'created_at' => $now,
             'updated_at' => $now,
-        ]);
+        ], ['id'], self::UNIQUE_KEY);
 
-        if ($inserted === 1) {
+        if ($inserted->isNotEmpty()) {
             return IdempotencyReservation::reserved();
         }
 
-        $existing = $this->record($merchantId, $key)->sole();
+        $existing = $this->record($merchantId, $key)->first()
+            ?? throw IdempotencyKeyNotReserved::conflictNotVisible();
 
         return IdempotencyReservation::forExistingKey(
             new RequestFingerprint($existing->request_fingerprint),
@@ -53,7 +57,7 @@ final readonly class PostgresIdempotencyStore implements IdempotencyStore
 
     public function attachTransaction(MerchantId $merchantId, IdempotencyKey $key, TransactionId $transactionId): void
     {
-        $this->record($merchantId, $key)->update([
+        $this->updateReservedKey($merchantId, $key, [
             'transaction_id' => $transactionId->value,
             'updated_at' => $this->now(),
         ]);
@@ -61,12 +65,22 @@ final readonly class PostgresIdempotencyStore implements IdempotencyStore
 
     public function complete(MerchantId $merchantId, IdempotencyKey $key, StoredResponse $response): void
     {
-        $this->record($merchantId, $key)->update([
+        $this->updateReservedKey($merchantId, $key, [
             'status' => IdempotencyKeyStatus::COMPLETED->value,
             'response_status' => $response->statusCode,
             'response_body' => json_encode($response->body, JSON_THROW_ON_ERROR),
             'updated_at' => $this->now(),
         ]);
+    }
+
+    /**
+     * @param  array<string, int|string>  $changes
+     */
+    private function updateReservedKey(MerchantId $merchantId, IdempotencyKey $key, array $changes): void
+    {
+        if ($this->record($merchantId, $key)->update($changes) === 0) {
+            throw IdempotencyKeyNotReserved::forMerchantKey();
+        }
     }
 
     /**

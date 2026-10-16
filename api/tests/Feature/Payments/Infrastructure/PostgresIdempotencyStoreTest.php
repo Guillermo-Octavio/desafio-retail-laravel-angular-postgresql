@@ -2,12 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Payments\Domain\Exceptions\IdempotencyKeyNotReserved;
 use App\Payments\Domain\Idempotency\IdempotencyKey;
 use App\Payments\Domain\Idempotency\ReservationOutcome;
 use App\Payments\Domain\Idempotency\StoredResponse;
 use App\Payments\Domain\MerchantId;
 use App\Payments\Domain\TransactionId;
 use App\Payments\Infrastructure\Persistence\PostgresIdempotencyStore;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\FixedClock;
 use Tests\Support\PaymentFixtures;
@@ -88,4 +90,39 @@ it('detects a key that another connection reserved and committed first', functio
         $otherRequest->table('idempotency_keys')->where('idempotency_key', 'key-1')->delete();
         $otherRequest->disconnect();
     }
+});
+
+it('refuses to attach a transaction to a key that was never reserved', function () {
+    DB::table('transactions')->insert(PaymentRows::transaction());
+
+    $this->store->attachTransaction($this->merchant, $this->key, new TransactionId(PaymentRows::TRANSACTION_ID));
+})->throws(IdempotencyKeyNotReserved::class);
+
+it('refuses to complete a key that was never reserved', function () {
+    $this->store->complete($this->merchant, $this->key, new StoredResponse(201, []));
+})->throws(IdempotencyKeyNotReserved::class);
+
+it('refuses to complete a key reserved by another merchant', function () {
+    $this->store->reserve(new MerchantId('merchant-002'), $this->key, PaymentFixtures::fingerprint('a'));
+
+    $this->store->complete($this->merchant, $this->key, new StoredResponse(201, []));
+})->throws(IdempotencyKeyNotReserved::class);
+
+it('fails explicitly when the conflicting key cannot be read back', function () {
+    // Simulates a conflicting row that is not visible to this request: the insert is skipped without a row.
+    DB::unprepared(<<<'SQL'
+        CREATE FUNCTION test_skip_insert() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NULL; END; $$;
+        CREATE TRIGGER test_skip_insert BEFORE INSERT ON idempotency_keys FOR EACH ROW EXECUTE FUNCTION test_skip_insert();
+        SQL);
+
+    $this->store->reserve($this->merchant, $this->key, PaymentFixtures::fingerprint('a'));
+})->throws(IdempotencyKeyNotReserved::class);
+
+it('only treats a conflict on the merchant and key as an existing key', function () {
+    // Another unique index must surface its own error instead of being read as a reused key.
+    DB::statement('CREATE UNIQUE INDEX test_unique_fingerprint ON idempotency_keys (request_fingerprint)');
+    $this->store->reserve($this->merchant, $this->key, PaymentFixtures::fingerprint('a'));
+
+    expect(fn () => $this->store->reserve($this->merchant, new IdempotencyKey('key-2'), PaymentFixtures::fingerprint('a')))
+        ->toThrow(QueryException::class, 'test_unique_fingerprint');
 });
