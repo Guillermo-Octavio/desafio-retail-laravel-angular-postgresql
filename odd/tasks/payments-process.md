@@ -41,4 +41,9 @@ Ruta inline: tareas secuenciales sobre un mismo flujo; no hay motivo de delegaci
   - los conflictos de idempotencia lanzan `IdempotencyKeyReused` e `IdempotencyKeyInProgress`, que `Http` traducirá a `409`.
 - **L3** Se documentaron `ACQUIRER_ERROR` y `INTEGRATION_ERROR` en `docs/01`, `docs/03` y `docs/04`. `BusinessRules`, `RetryPolicy`, `Sleeper` y `RequestFingerprinter` quedaron enlazados en el contenedor. `PaymentResponsePresenter` y `AcquirerGateway` se enlazan en el paso de `Http` y del cliente del adquirente.
 - **L4** Observación de GGA para el paso siguiente: el adaptador de `AcquirerGateway` solo debe lanzar las dos excepciones del contrato. Si lanza otra, la transacción queda en `PROCESSING` y la clave sin completar.
-- **L5** Verificación local: 236 pruebas aprobadas. Pendientes: el verificador independiente y la revisión RDD.
+- **L5** Verificación local: 236 pruebas aprobadas.
+- **L6** Verificador independiente: S1 a S6 en PASS, sin bloqueos.
+  - Advisory A1, causado por T4: con `afterCommit`, cada `save()` dentro de una transacción externa que hace commit vuelve a insertar los eventos.
+  - Corrección (203d14a): el agregado numera sus eventos (`sequence`); la migración `000004` agrega `UNIQUE (transaction_id, sequence)`; y el repositorio inserta con `ON CONFLICT (transaction_id, sequence) DO NOTHING`. Esto también cubre un commit ambiguo seguido de reintento.
+  - RED: 7 pruebas fallando, entre ellas la reproducción de A1. GREEN: 239 pruebas. Se probaron el rollback y la nueva migración, y se documentó en la sección 9.2 del modelo de dominio.
+  - El advisory A2 (excepción inesperada del gateway) queda para el adaptador, según L4.
