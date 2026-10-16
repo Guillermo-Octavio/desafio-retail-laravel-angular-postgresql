@@ -47,3 +47,9 @@ Ruta inline: tareas secuenciales sobre un mismo flujo; no hay motivo de delegaci
   - Corrección (203d14a): el agregado numera sus eventos (`sequence`); la migración `000004` agrega `UNIQUE (transaction_id, sequence)`; y el repositorio inserta con `ON CONFLICT (transaction_id, sequence) DO NOTHING`. Esto también cubre un commit ambiguo seguido de reintento.
   - RED: 7 pruebas fallando, entre ellas la reproducción de A1. GREEN: 239 pruebas. Se probaron el rollback y la nueva migración, y se documentó en la sección 9.2 del modelo de dominio.
   - El advisory A2 (excepción inesperada del gateway) queda para el adaptador, según L4.
+- **L7** Revisión RDD de la rama: **aprobada** y cerrada (lineage `review-7002908b5ca3bdd1`), con hallazgos informativos.
+- **L8** (2026-10-16) Instrucción del usuario: "ok, corrije", sobre los hallazgos 1 (CVV en la huella) y 2 (duración negativa).
+  - 2914d95: el CVV queda fuera de la huella, porque PCI DSS prohíbe conservarlo después de autorizar, ni siquiera como hash. Se documentó en DD-10.
+  - baf818a: puerto `MonotonicTimer` (`hrtime`) para medir la duración de cada intento; la fecha del evento sigue viniendo de `Clock`.
+  - RED: 21 pruebas fallando. GREEN: 242 pruebas.
+  - Quedan abiertos, sin cambios: la migración `000004` sin backfill (ninguna base tiene filas), la rotación de `APP_KEY`, la secuencia ante una reconstrucción (no existe) y la clave atascada (limitación conocida).
