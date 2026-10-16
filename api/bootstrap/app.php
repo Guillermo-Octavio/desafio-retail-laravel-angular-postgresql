@@ -1,5 +1,7 @@
 <?php
 
+use App\Payments\Http\PaymentsErrorRendering;
+use App\Shared\Http\ApiErrorRendering;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -19,4 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        // Module errors first: the shared rendering ends with a catch-all for internal errors.
+        PaymentsErrorRendering::register($exceptions);
+        ApiErrorRendering::register($exceptions);
     })->create();

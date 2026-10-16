@@ -310,6 +310,8 @@ Todas las respuestas de error usan el mismo formato, construido en un único pun
 | Falta `Idempotency-Key` | 400 | `IDEMPOTENCY_KEY_MISSING` |
 | Validación de entrada | 422 | `VALIDATION_ERROR` |
 | Transacción inexistente | 404 | `TRANSACTION_NOT_FOUND` |
+| Ruta inexistente bajo `/api` | 404 | `NOT_FOUND` |
+| Otro error HTTP del framework (por ejemplo, método no permitido) | Su código | `HTTP_ERROR` |
 | Conflicto de idempotencia | 409 | `IDEMPOTENCY_KEY_REUSED` o `IDEMPOTENCY_KEY_IN_PROGRESS` |
 | Excepción no controlada | 500 | `INTERNAL_ERROR`, sin detalles internos |
 
