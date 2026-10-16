@@ -59,3 +59,12 @@ Ruta inline: tareas secuenciales sobre el mismo flujo HTTP; no hay motivo de del
 - **L9** Advisories no aplicados:
   - el `413` de nginx en el gateway, que no llega a Laravel y está fuera de S1;
   - filas de datos de prueba en la base de desarrollo: dos claves de humo que incluyen un número de tarjeta de prueba, y la fila `verifier-a` en `IN_PROGRESS` que dejó el verificador. Solo afectan a desarrollo.
+- **L10** Revisión RDD de la rama con cuatro lentes: **aprobada** y cerrada.
+- **L11** (2026-10-16) Instrucción del usuario: "corrige esos y luego haz merge a main y push", sobre las sugerencias 1 a 4. Corrección (fce3a71):
+  - Todas las expresiones regulares usan `\z` en lugar de `$`: dominio, Form Requests, mock y middleware.
+  - Los Form Requests reutilizan `CardNumber::FORMAT` y `Cvv::FORMAT`, y `MaskedCard` tiene la constante `LAST4_FORMAT`.
+  - El manejador genérico deja pasar `HttpResponseException`.
+  - `isApiRequest()` es la única definición de `api/*`.
+  - Se actualizó el docblock de `PaymentRows`.
+
+  Pruebas: el dominio rechaza un salto de línea final; las reglas de los dos Form Requests lo rechazan; por HTTP, `TrimStrings` recorta el valor antes de que llegue al adquirente; y una respuesta explícita se conserva. GGA rechazó primero el commit por falta de pruebas de los Form Requests, y se agregaron. RED: 6 pruebas fallando. Pasan 358 pruebas.
