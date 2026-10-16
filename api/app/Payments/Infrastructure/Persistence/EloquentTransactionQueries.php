@@ -7,6 +7,8 @@ namespace App\Payments\Infrastructure\Persistence;
 use App\Payments\Application\Ports\TransactionQueries;
 use App\Payments\Application\Queries\TransactionDetails;
 use App\Payments\Application\Queries\TransactionEventView;
+use App\Payments\Application\Queries\TransactionFilter;
+use App\Payments\Application\Queries\TransactionPage;
 use App\Payments\Application\Queries\TransactionSummary;
 use App\Payments\Domain\TransactionId;
 use App\Payments\Infrastructure\Persistence\Models\TransactionEventRecord;
@@ -34,6 +36,24 @@ final readonly class EloquentTransactionQueries implements TransactionQueries
             ->all();
 
         return new TransactionDetails($this->summary($record), $events);
+    }
+
+    public function search(TransactionFilter $filter, int $page, int $perPage): TransactionPage
+    {
+        $paginator = TransactionRecord::query()
+            ->when($filter->merchantId !== null, fn ($query) => $query->where('merchant_id', $filter->merchantId))
+            ->when($filter->status !== null, fn ($query) => $query->where('status', $filter->status?->value))
+            // id breaks ties: UUID v7 grows with time, so the order stays stable.
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate(perPage: $perPage, page: $page);
+
+        return new TransactionPage(
+            array_values(array_map(fn (TransactionRecord $record) => $this->summary($record), $paginator->items())),
+            $paginator->currentPage(),
+            $paginator->perPage(),
+            $paginator->total(),
+        );
     }
 
     private function summary(TransactionRecord $record): TransactionSummary
