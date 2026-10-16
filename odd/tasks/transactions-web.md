@@ -54,3 +54,12 @@ Ruta inline: tareas secuenciales del mismo módulo; no hay motivo de delegación
   - los inputs de la URL usan camelCase con alias;
   - la paleta está tipada y no se modifica estado compartido.
 - **L5** Verificación: 45 pruebas del frontend y build de producción con chunks diferidos por ruta. El gateway sirve `/transactions` con `200`. Se actualizó el README.
+- **L6** Verificador independiente: S1, S2, S3 y S5 en PASS; S4 en PARTIAL por el bloqueo B1.
+  - B1: con `<base href="/">`, el enlace `href="#main"` navegaba a `/#main` y recargaba la aplicación, perdiendo los filtros o el detalle.
+  - Corrección (ea13536): el `click` hace `preventDefault()` y mueve el foco a `<main tabindex="-1">`. Se quitó `focus:outline-none` del h1 (no tenía efecto) y el enlace tiene un color explícito. RED: 1 prueba fallando. Pasan 46 pruebas en tres ejecuciones seguidas.
+  - Dependencia: `axe-core` 4.10.3 exacta, solo de desarrollo, y fuera del build de producción.
+  - Advisories no aplicados:
+    - al paginar o reintentar, el foco cae al `body` porque el estado de carga reemplaza la tabla;
+    - las regiones `role=status` y `alert` se insertan nuevas cada vez;
+    - una página mayor a `last_page` no tiene camino de vuelta;
+    - el `select` navega con cada `change`.
