@@ -38,4 +38,8 @@ Ruta inline: unidades secuenciales que dependen de las migraciones; no hay motiv
 - **L5** Contrato de `TransactionRepository::save()`: los eventos se toman del agregado antes de escribir, así que una instancia cuyo `save()` falló se descarta (observación de GGA). Queda documentado en el puerto.
 - **L6** Se agregó el puerto `TransactionIdGenerator`, necesario para S7, porque el dominio no puede usar `Str::uuid7()`.
 - **L7** La concurrencia de `reserve()` se prueba con una segunda conexión que hace commit primero. La carrera simultánea real la garantiza la restricción única.
-- **L8** Verificación: 183 pruebas aprobadas. Pendientes: el verificador independiente y la revisión RDD.
+- **L8** Verificador independiente: S1, S3, S5, S6 y S7 en PASS; S2 y S4 en PARTIAL por el bloqueo B1, que se describe en L9. La base de desarrollo quedó intacta.
+- **L9** Corrección de B1 (8b4e5b9): `timestampsTz()` crea columnas nullable, y las secciones 9.1 y 9.3 exigen NOT NULL. Ahora cada timestamp se declara con `timestampTz()`, con su prueba (RED: 4 pruebas fallando). Recheck: `information_schema` muestra `is_nullable = NO` y las 187 pruebas pasan. También se aplicó el advisory 2: el cleanup de la prueba concurrente filtra por clave.
+- **L10** Advisories no aplicados:
+  - `CHECK` en `transaction_events.type` e `idempotency_keys.status`: no lo pide la documentación;
+  - `sole()` bajo REPEATABLE READ: no hay casos de uso todavía.
