@@ -12,6 +12,7 @@ use App\Payments\Domain\Exceptions\AcquirerTemporarilyUnavailable;
 use App\Payments\Domain\Ports\AcquirerGateway;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory as HttpFactory;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 
 /**
@@ -50,12 +51,8 @@ final readonly class HttpAcquirerGateway implements AcquirerGateway
     {
         $response = $this->send($request);
 
-        if ($response->serverError()) {
-            throw new AcquirerTemporarilyUnavailable("HTTP_{$response->status()}");
-        }
-
         if (! $response->successful()) {
-            throw new AcquirerIntegrationFailed("HTTP_{$response->status()}");
+            throw $this->failedStatus($response);
         }
 
         return $this->decision($response) ?? throw new AcquirerIntegrationFailed(self::UNEXPECTED_RESPONSE);
@@ -77,7 +74,20 @@ final readonly class HttpAcquirerGateway implements AcquirerGateway
             $isTimeout = str_contains($error->getMessage(), self::CURL_TIMEOUT_ERROR);
 
             throw new AcquirerTemporarilyUnavailable($isTimeout ? self::TIMEOUT : self::CONNECTION_FAILED, $error);
+        } catch (RequestException $error) {
+            // The status line arrived but the body transfer failed. The original exception is
+            // dropped on purpose: its message quotes the response body, which may echo card data.
+            throw $this->failedStatus($error->response);
         }
+    }
+
+    private function failedStatus(Response $response): AcquirerTemporarilyUnavailable|AcquirerIntegrationFailed
+    {
+        $errorCode = "HTTP_{$response->status()}";
+
+        return $response->serverError()
+            ? new AcquirerTemporarilyUnavailable($errorCode)
+            : new AcquirerIntegrationFailed($errorCode);
     }
 
     /**

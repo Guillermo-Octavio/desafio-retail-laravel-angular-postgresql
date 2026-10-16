@@ -8,8 +8,11 @@ use App\Payments\Domain\Exceptions\AcquirerIntegrationFailed;
 use App\Payments\Domain\Exceptions\AcquirerTemporarilyUnavailable;
 use App\Payments\Domain\Ports\AcquirerGateway;
 use App\Payments\Infrastructure\Acquirer\HttpAcquirerGateway;
+use GuzzleHttp\Psr7\Response as Psr7Response;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Tests\Support\PaymentFixtures;
 
@@ -75,6 +78,7 @@ it('treats server errors, timeouts and connection failures as temporary', functi
     '500' => [fn () => Http::response('', 500), 'HTTP_500'],
     'timeout' => [fn () => throw new ConnectionException('cURL error 28: Operation timed out after 2001 milliseconds'), 'TIMEOUT'],
     'connection refused' => [fn () => throw new ConnectionException('cURL error 7: Failed to connect to acquirer-mock port 8000'), 'CONNECTION_FAILED'],
+    'body cut after a 503 status line' => [fn () => throw new RequestException(new Response(new Psr7Response(503, [], 'partial'))), 'HTTP_503'],
 ]);
 
 it('treats any other unexpected answer as an integration error', function (Closure $response, string $errorCode) {
@@ -98,6 +102,7 @@ it('treats any other unexpected answer as an integration error', function (Closu
     'approval without code' => [fn () => Http::response(['status' => 'APPROVED']), 'UNEXPECTED_RESPONSE'],
     'approval with a code too long' => [fn () => Http::response(['status' => 'APPROVED', 'authorization_code' => str_repeat('A', 65)]), 'UNEXPECTED_RESPONSE'],
     'unknown decline reason' => [fn () => Http::response(['status' => 'DECLINED', 'reason' => 'DO_NOT_HONOR']), 'UNEXPECTED_RESPONSE'],
+    'body cut after a 422 status line' => [fn () => throw new RequestException(new Response(new Psr7Response(422, [], 'card 4111111111111111'))), 'HTTP_422'],
     'decline with an internal reason' => [fn () => Http::response(['status' => 'DECLINED', 'reason' => 'AMOUNT_LIMIT_EXCEEDED']), 'UNEXPECTED_RESPONSE'],
 ]);
 

@@ -209,7 +209,8 @@ en su caché local.
   ese contenedor. En la API las rutas no existen (DA-03).
 - No usa la base de datos ni ejecuta migraciones.
 - Corre con `--no-reload`: sin esa opción, `artisan serve` solo pasa a sus workers una lista fija de
-  variables de entorno cuando existe `api/.env`, y `ACQUIRER_MOCK_ENABLED` no llegaría.
+  variables de entorno cuando existe `api/.env`, y `ACQUIRER_MOCK_ENABLED` no llegaría. Además,
+  sin `--no-reload` ignora `PHP_CLI_SERVER_WORKERS` y atiende con un solo proceso.
 - El cliente de la API no sigue redirecciones del adquirente: una redirección reenviaría los datos
   de tarjeta a otro host. Una respuesta `3xx` se trata como error de integración.
 
