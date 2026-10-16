@@ -12,11 +12,11 @@ export interface TransactionFiltersValue {
     <form
       class="flex flex-wrap items-end gap-4"
       role="search"
-      aria-label="Filter transactions"
+      aria-label="Filtrar transacciones"
       (submit)="submit($event, merchant.value, statusSelect.value)"
     >
       <div class="flex flex-col gap-1">
-        <label for="merchant-filter" class="text-sm font-medium text-slate-800">Merchant</label>
+        <label for="merchant-filter" class="text-sm font-medium text-slate-800">Comercio</label>
         <input
           #merchant
           id="merchant-filter"
@@ -27,21 +27,21 @@ export interface TransactionFiltersValue {
         />
       </div>
       <div class="flex flex-col gap-1">
-        <label for="status-filter" class="text-sm font-medium text-slate-800">Status</label>
+        <label for="status-filter" class="text-sm font-medium text-slate-800">Estado</label>
         <select
           #statusSelect
           id="status-filter"
           class="rounded border border-slate-500 px-3 py-2"
           (change)="apply(merchant.value, statusSelect.value)"
         >
-          <option value="" [selected]="status() === null">All</option>
+          <option value="" [selected]="status() === null">Todos</option>
           @for (option of statuses; track option) {
             <option [value]="option" [selected]="option === status()">{{ option }}</option>
           }
         </select>
       </div>
       <button type="submit" class="rounded bg-slate-800 px-4 py-2 font-medium text-white">
-        Search
+        Buscar
       </button>
     </form>
   `,

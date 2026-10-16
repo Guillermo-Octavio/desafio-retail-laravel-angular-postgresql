@@ -33,7 +33,7 @@ import { TransactionTable } from '../ui/transaction-table';
         tabindex="-1"
         class="text-2xl font-semibold text-slate-900"
       >
-        Transactions
+        Transacciones
       </h1>
 
       <app-transaction-filters
@@ -125,7 +125,7 @@ export class TransactionsPage {
     this.navigate({ ...this.query(), page });
   }
 
-  /** The Retry button disappears once the data loads, so the focus moves to a stable place first. */
+  /** The "Reintentar" button disappears once the data loads, so the focus moves to a stable place first. */
   protected retry(): void {
     this.heading().nativeElement.focus();
     this.transactions.reload();

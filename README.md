@@ -99,8 +99,9 @@ El Acquirer Mock responde según el número de tarjeta:
 <http://localhost:8080/transactions> lista las transacciones con filtros por comercio y estado, y
 con paginación. Al abrir una transacción se ven su detalle y su historial de eventos (HU-12). Los
 filtros y la página quedan en la URL, así que una búsqueda se puede compartir. La vista muestra
-estados de carga, vacío y error con "Retry", y cumple WCAG AA: etiquetas, navegación con teclado,
-foco visible y contraste.
+estados de carga, vacío y error con "Reintentar", y cumple WCAG AA: etiquetas, navegación con
+teclado, foco visible y contraste. La interfaz está en español neutro; los datos (estados, motivos,
+identificadores, montos y fechas) se muestran tal como los entrega la API.
 
 ### Seguir una transacción en los logs
 

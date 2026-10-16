@@ -3,23 +3,23 @@ import { Component, input, output } from '@angular/core';
 @Component({
   selector: 'app-pagination',
   template: `
-    <nav aria-label="Pagination" class="flex items-center gap-4">
+    <nav aria-label="Paginación" class="flex items-center gap-4">
       <button
         type="button"
         class="rounded border border-slate-500 px-3 py-1 disabled:opacity-50"
         [disabled]="page() <= 1"
         (click)="pageChange.emit(page() - 1)"
       >
-        Previous page
+        Página anterior
       </button>
-      <span aria-live="polite">Page {{ page() }} of {{ lastPage() }}</span>
+      <span aria-live="polite">Página {{ page() }} de {{ lastPage() }}</span>
       <button
         type="button"
         class="rounded border border-slate-500 px-3 py-1 disabled:opacity-50"
         [disabled]="page() >= lastPage()"
         (click)="pageChange.emit(page() + 1)"
       >
-        Next page
+        Página siguiente
       </button>
     </nav>
   `,

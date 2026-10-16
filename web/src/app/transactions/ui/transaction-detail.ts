@@ -11,32 +11,32 @@ import { StatusBadge } from './status-badge';
   template: `
     <article class="flex flex-col gap-6">
       <h1 #heading tabindex="-1" class="text-xl font-semibold text-slate-900">
-        Transaction <span class="font-mono">{{ transaction().transaction_id }}</span>
+        Transacción <span class="font-mono">{{ transaction().transaction_id }}</span>
       </h1>
 
       <dl class="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
-        <dt class="font-medium text-slate-700">Status</dt>
+        <dt class="font-medium text-slate-700">Estado</dt>
         <dd><app-status-badge [status]="transaction().status" /></dd>
-        <dt class="font-medium text-slate-700">Reason</dt>
+        <dt class="font-medium text-slate-700">Motivo</dt>
         <dd>{{ transaction().decline_reason ?? '—' }}</dd>
-        <dt class="font-medium text-slate-700">Merchant</dt>
+        <dt class="font-medium text-slate-700">Comercio</dt>
         <dd>{{ transaction().merchant_id }}</dd>
-        <dt class="font-medium text-slate-700">Amount</dt>
+        <dt class="font-medium text-slate-700">Monto</dt>
         <dd class="tabular-nums">{{ amount() }}</dd>
-        <dt class="font-medium text-slate-700">Card</dt>
-        <dd>{{ transaction().card.brand }} ending in {{ transaction().card.last4 }}</dd>
-        <dt class="font-medium text-slate-700">Created ({{ timeZone }})</dt>
+        <dt class="font-medium text-slate-700">Tarjeta</dt>
+        <dd>{{ transaction().card.brand }} terminada en {{ transaction().card.last4 }}</dd>
+        <dt class="font-medium text-slate-700">Creada ({{ timeZone }})</dt>
         <dd class="tabular-nums">
           {{ createdAt() }}
         </dd>
-        <dt class="font-medium text-slate-700">Updated ({{ timeZone }})</dt>
+        <dt class="font-medium text-slate-700">Actualizada ({{ timeZone }})</dt>
         <dd class="tabular-nums">
           {{ updatedAt() }}
         </dd>
       </dl>
 
       <section aria-labelledby="history-heading">
-        <h2 id="history-heading" class="mb-2 text-lg font-semibold text-slate-900">History</h2>
+        <h2 id="history-heading" class="mb-2 text-lg font-semibold text-slate-900">Historial</h2>
         <ol class="flex flex-col gap-2 border-l-2 border-slate-300 pl-4 text-sm">
           @for (event of events(); track $index) {
             <li>
@@ -44,7 +44,7 @@ import { StatusBadge } from './status-badge';
                 {{ event.time }}
               </time>
               <span class="ml-2">{{ event.description }}</span>
-              <span class="ml-2 text-slate-700">correlation {{ event.correlationId }}</span>
+              <span class="ml-2 text-slate-700">correlación {{ event.correlationId }}</span>
             </li>
           }
         </ol>

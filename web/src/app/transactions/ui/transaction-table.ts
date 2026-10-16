@@ -11,17 +11,17 @@ import { StatusBadge } from './status-badge';
   template: `
     <table class="w-full border-collapse text-left text-sm">
       <caption class="sr-only">
-        Transactions, newest first
+        Transacciones, de la más reciente a la más antigua
       </caption>
       <thead class="border-b border-slate-300 text-slate-800">
         <tr>
-          <th scope="col" class="py-2 pr-4">Transaction</th>
-          <th scope="col" class="py-2 pr-4">Merchant</th>
-          <th scope="col" class="py-2 pr-4">Amount</th>
-          <th scope="col" class="py-2 pr-4">Status</th>
-          <th scope="col" class="py-2 pr-4">Reason</th>
-          <th scope="col" class="py-2 pr-4">Card</th>
-          <th scope="col" class="py-2">Created ({{ timeZone }})</th>
+          <th scope="col" class="py-2 pr-4">Transacción</th>
+          <th scope="col" class="py-2 pr-4">Comercio</th>
+          <th scope="col" class="py-2 pr-4">Monto</th>
+          <th scope="col" class="py-2 pr-4">Estado</th>
+          <th scope="col" class="py-2 pr-4">Motivo</th>
+          <th scope="col" class="py-2 pr-4">Tarjeta</th>
+          <th scope="col" class="py-2">Creada ({{ timeZone }})</th>
         </tr>
       </thead>
       <tbody>
@@ -41,7 +41,7 @@ import { StatusBadge } from './status-badge';
             <td class="py-2 pr-4">{{ transaction.decline_reason ?? '—' }}</td>
             <td class="py-2 pr-4">
               {{ transaction.card.brand }} <span aria-hidden="true">••••</span
-              ><span class="sr-only">ending in</span>
+              ><span class="sr-only">terminada en</span>
               {{ transaction.card.last4 }}
             </td>
             <td class="py-2 tabular-nums">

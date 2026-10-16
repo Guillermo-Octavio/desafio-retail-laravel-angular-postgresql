@@ -81,7 +81,7 @@ describe('Transactions pages (HU-12)', () => {
     expect(element.querySelector<HTMLInputElement>('input#merchant-filter')!.value).toBe(
       'merchant-001',
     );
-    expect(element.textContent).toContain('Page 2 of 3');
+    expect(element.textContent).toContain('Página 2 de 3');
   });
 
   it('ignores an unknown status in the URL', async () => {
@@ -97,12 +97,12 @@ describe('Transactions pages (HU-12)', () => {
     let element = await open('/transactions?status=APPROVED');
 
     [...element.querySelectorAll('button')]
-      .find((button) => button.textContent?.includes('Next page'))!
+      .find((button) => button.textContent?.includes('Página siguiente'))!
       .click();
     element = await settle();
 
     expect(api.listCalls.at(-1)).toEqual({ merchantId: '', status: 'APPROVED', page: 2 });
-    expect(element.textContent).toContain('Page 2 of 2');
+    expect(element.textContent).toContain('Página 2 de 2');
   });
 
   it('shows an empty state when nothing matches', async () => {
@@ -110,14 +110,14 @@ describe('Transactions pages (HU-12)', () => {
 
     const element = await open('/transactions?merchant_id=merchant-999');
 
-    expect(element.querySelector('[role="status"]')?.textContent).toContain('No transactions');
+    expect(element.querySelector('[role="status"]')?.textContent).toContain('No hay transacciones');
     expect(element.querySelector('table')).toBeNull();
   });
 
   it('shows an error with a retry option when the API does not answer, and recovers on retry', async () => {
     let element = await open('/transactions');
 
-    expect(element.querySelector('[role="alert"]')?.textContent).toContain('could not be loaded');
+    expect(element.querySelector('[role="alert"]')?.textContent).toContain('No se pudieron cargar');
 
     api.answerList(aTransactionPage());
     element.querySelector<HTMLButtonElement>('[role="alert"] button')!.click();
@@ -136,7 +136,7 @@ describe('Transactions pages (HU-12)', () => {
     let element = await open('/transactions');
 
     const next = [...element.querySelectorAll('button')].find((button) =>
-      button.textContent?.includes('Next page'),
+      button.textContent?.includes('Página siguiente'),
     )!;
     next.focus();
     next.click();
@@ -146,7 +146,7 @@ describe('Transactions pages (HU-12)', () => {
     element = harness.routeNativeElement as HTMLElement;
 
     expect(api.listCalls.at(-1)?.page).toBe(2);
-    expect(element.querySelector('[role="status"]')?.textContent).toContain('Loading');
+    expect(element.querySelector('[role="status"]')?.textContent).toContain('Cargando');
     expect(element.querySelector('table')).not.toBeNull();
     expect(element.querySelector('[aria-busy="true"]')).not.toBeNull();
     expect(document.activeElement).toBe(next);
@@ -161,7 +161,7 @@ describe('Transactions pages (HU-12)', () => {
       );
     let element = await open('/transactions?status=APPROVED&page=5');
 
-    expect(element.querySelector('[role="status"]')?.textContent).toContain('past the last one');
+    expect(element.querySelector('[role="status"]')?.textContent).toContain('después de la última');
     element.querySelector<HTMLButtonElement>('[role="status"] button')!.click();
     element = await settle();
 
@@ -172,7 +172,7 @@ describe('Transactions pages (HU-12)', () => {
   it('retries loading a transaction after an error other than not found', async () => {
     let element = await open('/transactions/01a14306-750b-7019-8c17-1cfe1d981425');
 
-    expect(element.querySelector('[role="alert"]')?.textContent).toContain('could not be loaded');
+    expect(element.querySelector('[role="alert"]')?.textContent).toContain('No se pudieron cargar');
 
     api.getAnswer = () => of(aTransactionDetails());
     element.querySelector<HTMLButtonElement>('[role="alert"] button')!.click();
@@ -227,7 +227,7 @@ describe('Transactions pages (HU-12)', () => {
     );
     expect(element.querySelectorAll('ol li')).toHaveLength(5);
     expect(element.querySelector('a[href="/transactions"]')?.textContent).toContain(
-      'Back to transactions',
+      'Volver a transacciones',
     );
     await expectNoAxeViolations(element);
   });
@@ -245,7 +245,7 @@ describe('Transactions pages (HU-12)', () => {
 
     const element = await open('/transactions/01a14306-0000-7000-8000-000000000000');
 
-    expect(element.querySelector('[role="alert"]')?.textContent).toContain('does not exist');
+    expect(element.querySelector('[role="alert"]')?.textContent).toContain('no existe');
     expect(element.querySelector('[role="alert"] button')).toBeNull();
   });
 

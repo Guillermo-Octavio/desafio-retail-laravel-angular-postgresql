@@ -13,12 +13,12 @@ import { TransactionDetail } from '../ui/transaction-detail';
   template: `
     <div class="flex flex-col gap-6">
       <a routerLink="/transactions" class="self-start text-blue-800 underline"
-        >← Back to transactions</a
+        >← Volver a transacciones</a
       >
 
       @if (notFound()) {
         <p role="alert" class="rounded border border-amber-300 bg-amber-50 p-4 text-amber-900">
-          This transaction does not exist.
+          Esta transacción no existe.
         </p>
       } @else if (transaction.error()) {
         <app-load-state state="error" (retry)="transaction.reload()" />

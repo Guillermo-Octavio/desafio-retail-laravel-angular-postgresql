@@ -32,6 +32,6 @@ describe('API time', () => {
   });
 
   it('names the column the same whatever the configured zone is', () => {
-    expect(BUSINESS_TIME_LABEL).toBe('business time');
+    expect(BUSINESS_TIME_LABEL).toBe('hora del negocio');
   });
 });

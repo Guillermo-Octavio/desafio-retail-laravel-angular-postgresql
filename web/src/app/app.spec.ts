@@ -20,9 +20,9 @@ describe('App', () => {
   it('renders the page landmarks and a skip link to the main content', async () => {
     const element = await render();
 
-    expect(element.querySelector('header')?.textContent).toContain('Payment Processing Service');
+    expect(element.querySelector('header')?.textContent).toContain('Procesamiento de pagos');
     expect(element.querySelector('main#main')).not.toBeNull();
-    expect(element.querySelector('a[href="#main"]')?.textContent).toContain('Skip to content');
+    expect(element.querySelector('a[href="#main"]')?.textContent).toContain('Saltar al contenido');
     await expectNoAxeViolations(element);
   });
 

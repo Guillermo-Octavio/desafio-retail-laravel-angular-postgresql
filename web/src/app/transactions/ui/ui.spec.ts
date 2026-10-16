@@ -42,9 +42,9 @@ describe('TransactionFilters', () => {
     element.querySelector('form')!.dispatchEvent(new Event('submit'));
 
     expect(element.querySelector('label[for="merchant-filter"]')?.textContent).toContain(
-      'Merchant',
+      'Comercio',
     );
-    expect(element.querySelector('label[for="status-filter"]')?.textContent).toContain('Status');
+    expect(element.querySelector('label[for="status-filter"]')?.textContent).toContain('Estado');
     expect(emitted).toEqual([{ merchantId: 'merchant-001', status: 'DECLINED' }]);
     await expectNoAxeViolations(element);
   });
@@ -92,12 +92,12 @@ describe('TransactionTable', () => {
     expect(rows[1].textContent).toContain('USD');
     expect(rows[1].textContent).toContain('10.50');
     expect(rows[1].textContent).toContain('INSUFFICIENT_FUNDS');
-    expect(rows[1].textContent).toMatch(/VISA\s*••••\s*ending in\s*1111/);
+    expect(rows[1].textContent).toMatch(/VISA\s*••••\s*terminada en\s*1111/);
     expect(rows[1].querySelector('a')?.getAttribute('href')).toBe(
       '/transactions/01a14306-0000-7000-8000-000000000002',
     );
     expect(element.querySelector('caption')).not.toBeNull();
-    expect(element.querySelector('thead')?.textContent).toContain('Created (business time)');
+    expect(element.querySelector('thead')?.textContent).toContain('Creada (hora del negocio)');
     expect(rows[0].textContent).toContain('2026-10-15 09:00:00 (UTC-03:00)');
     expect(
       [...element.querySelectorAll('th')].every((header) => header.getAttribute('scope') === 'col'),
@@ -116,7 +116,7 @@ describe('Pagination', () => {
     expect(previous.disabled).toBe(true);
     next.click();
     expect(pages).toEqual([2]);
-    expect(element.textContent).toContain('Page 1 of 3');
+    expect(element.textContent).toContain('Página 1 de 3');
     await expectNoAxeViolations(element);
 
     fixture.componentRef.setInput('page', 3);
@@ -134,11 +134,11 @@ describe('LoadState', () => {
 
     fixture.componentRef.setInput('state', 'loading');
     fixture.detectChanges();
-    expect(element.querySelector('[role="status"]')?.textContent).toContain('Loading');
+    expect(element.querySelector('[role="status"]')?.textContent).toContain('Cargando');
 
     fixture.componentRef.setInput('state', 'empty');
     fixture.detectChanges();
-    expect(element.querySelector('[role="status"]')?.textContent).toContain('No transactions');
+    expect(element.querySelector('[role="status"]')?.textContent).toContain('No hay transacciones');
     await expectNoAxeViolations(element);
   });
 
@@ -147,7 +147,7 @@ describe('LoadState', () => {
     let retries = 0;
     fixture.componentInstance.retry.subscribe(() => retries++);
 
-    expect(element.querySelector('[role="alert"]')?.textContent).toContain('could not be loaded');
+    expect(element.querySelector('[role="alert"]')?.textContent).toContain('No se pudieron cargar');
     element.querySelector('button')!.click();
 
     expect(retries).toBe(1);
@@ -159,7 +159,7 @@ describe('LoadState', () => {
     let requests = 0;
     fixture.componentInstance.firstPage.subscribe(() => requests++);
 
-    expect(element.querySelector('[role="status"]')?.textContent).toContain('past the last one');
+    expect(element.querySelector('[role="status"]')?.textContent).toContain('después de la última');
     element.querySelector('button')!.click();
 
     expect(requests).toBe(1);
@@ -182,12 +182,12 @@ describe('TransactionDetail', () => {
     expect(events).toHaveLength(5);
     expect(events[0]).toContain('→ PENDING');
     expect(events[1]).toContain('PENDING → PROCESSING');
-    expect(events[2]).toContain('Attempt 1: TEMPORARY_ERROR');
+    expect(events[2]).toContain('Intento 1: TEMPORARY_ERROR');
     expect(events[2]).toContain('HTTP_503');
-    expect(events[3]).toContain('Attempt 2: APPROVED');
+    expect(events[3]).toContain('Intento 2: APPROVED');
     expect(events[4]).toContain('PROCESSING → APPROVED');
     expect(element.textContent).toContain('corr-123');
-    expect(element.textContent).toContain('Created (business time)');
+    expect(element.textContent).toContain('Creada (hora del negocio)');
     expect(element.textContent).toContain('2026-10-15 09:00:00.000 (UTC-03:00)');
     expect(element.textContent).toContain('2026-10-15 09:00:01.000 (UTC-03:00)');
     expect(element.querySelector('ol li time')?.textContent?.trim()).toBe('09:00:00.000');

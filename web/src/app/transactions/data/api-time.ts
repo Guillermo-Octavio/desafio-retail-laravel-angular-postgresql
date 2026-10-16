@@ -3,7 +3,7 @@
  * (PAYMENTS_BUSINESS_TIMEZONE, America/Santiago by default). The view shows that wall-clock
  * time as it comes, so it always matches the API's configuration without a zone of its own.
  */
-export const BUSINESS_TIME_LABEL = 'business time';
+export const BUSINESS_TIME_LABEL = 'hora del negocio';
 
 const API_INSTANT = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})\.(\d{3})([+-]\d{2}:\d{2})$/;
 

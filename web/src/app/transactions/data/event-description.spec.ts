@@ -16,7 +16,7 @@ function anEvent(overrides: Partial<TransactionEvent>): TransactionEvent {
 
 describe('describeEvent', () => {
   it('describes a status change, its creation and its reason', () => {
-    expect(describeEvent(anEvent({}))).toBe('Created → PENDING');
+    expect(describeEvent(anEvent({}))).toBe('Creada → PENDING');
     expect(
       describeEvent(
         anEvent({ from_status: 'PENDING', to_status: 'DECLINED', reason: 'CARD_EXPIRED' }),
@@ -41,13 +41,13 @@ describe('describeEvent', () => {
       metadata: { attempt: 2, outcome: 'APPROVED', duration_ms: 85 },
     });
 
-    expect(describeEvent(failed)).toBe('Attempt 1: TEMPORARY_ERROR in 2001 ms (TIMEOUT)');
-    expect(describeEvent(approved)).toBe('Attempt 2: APPROVED in 85 ms');
+    expect(describeEvent(failed)).toBe('Intento 1: TEMPORARY_ERROR en 2001 ms (TIMEOUT)');
+    expect(describeEvent(approved)).toBe('Intento 2: APPROVED en 85 ms');
   });
 
   it('never shows undefined values when an attempt has no metadata', () => {
     expect(
       describeEvent(anEvent({ type: 'ACQUIRER_ATTEMPT', to_status: null, metadata: null })),
-    ).toBe('Acquirer attempt');
+    ).toBe('Intento al adquirente');
   });
 });

@@ -12,20 +12,20 @@ export type LoadStateKind = 'loading' | 'empty' | 'beyond-last-page' | 'error';
     <div role="status" class="text-slate-700">
       @switch (state()) {
         @case ('loading') {
-          <p class="py-2">Loading…</p>
+          <p class="py-2">Cargando…</p>
         }
         @case ('empty') {
-          <p class="py-6">No transactions match these filters.</p>
+          <p class="py-6">No hay transacciones que coincidan con estos filtros.</p>
         }
         @case ('beyond-last-page') {
           <div class="flex items-center gap-4 py-6">
-            <p>This page is past the last one.</p>
+            <p>Esta página está después de la última.</p>
             <button
               type="button"
               class="rounded border border-slate-500 px-3 py-1"
               (click)="firstPage.emit()"
             >
-              Go to the first page
+              Ir a la primera página
             </button>
           </div>
         }
@@ -36,13 +36,13 @@ export type LoadStateKind = 'loading' | 'empty' | 'beyond-last-page' | 'error';
         <div
           class="flex items-center gap-4 rounded border border-red-300 bg-red-50 p-4 text-red-800"
         >
-          <p>The data could not be loaded. Check that the API is running.</p>
+          <p>No se pudieron cargar los datos. Verifique que la API esté en ejecución.</p>
           <button
             type="button"
             class="rounded bg-red-800 px-3 py-1 font-medium text-white"
             (click)="retry.emit()"
           >
-            Retry
+            Reintentar
           </button>
         </div>
       }
