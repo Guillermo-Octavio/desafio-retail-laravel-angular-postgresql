@@ -25,13 +25,32 @@ Decisiones aprobadas: el detalle es una ruta propia, y `axe-core` se agrega como
 
 | ID | Specs | Ruta | Estado | Evidencia |
 |----|-------|------|--------|-----------|
-| T1 | S1 | inline | pendiente | |
-| T2 | S2 | inline | pendiente | |
-| T3 | S3, S5 | inline | pendiente | |
-| T4 | S4 | inline | pendiente | |
+| T1 | S1 | inline | hecho | 14e33be; RED: no compilaba sin los modelos |
+| T2 | S2 | inline | hecho | c444247; RED: no compilaba sin los componentes |
+| T3 | S3, S5 | inline | hecho | 6bd2619; RED: 11 pruebas fallando |
+| T4 | S4 | inline | hecho | 9c2fb17; prueba de contraste con un control negativo |
 
 Ruta inline: tareas secuenciales del mismo módulo; no hay motivo de delegación.
 
 ## Log
 
 - **L1** (2026-10-16) Propuesta aprobada: "ok, implementa en feature/transactions-web", con sus dos decisiones.
+- **L2** Decisiones dentro del alcance:
+  - textos de la interfaz en inglés, como el código y el contrato de la API;
+  - montos con código de moneda (`CLP 15,000`, `USD 10.50`), porque `$` es ambiguo entre CLP y USD;
+  - `page` solo se envía cuando es mayor que 1;
+  - se activó `strict` en TypeScript;
+  - los datos de prueba y el helper de axe viven en `src/testing/`, excluido de la compilación de la aplicación.
+- **L3** Accesibilidad:
+  - axe en cada componente y en las páginas;
+  - el contraste se verifica aparte, con la paleta OKLCH de Tailwind 4, porque `jsdom` no calcula colores;
+  - enlace para saltar al contenido, landmarks, `role="status"` y `role="alert"`;
+  - el foco va al encabezado al abrir el detalle;
+  - `:focus-visible` global.
+- **L4** Observaciones de GGA aplicadas:
+  - la lógica del `submit` salió de la plantilla;
+  - se renombró la referencia `#statusSelect`;
+  - `describeEvent` no muestra `undefined` y tiene pruebas directas;
+  - los inputs de la URL usan camelCase con alias;
+  - la paleta está tipada y no se modifica estado compartido.
+- **L5** Verificación: 45 pruebas del frontend y build de producción con chunks diferidos por ruta. El gateway sirve `/transactions` con `200`. Se actualizó el README.
