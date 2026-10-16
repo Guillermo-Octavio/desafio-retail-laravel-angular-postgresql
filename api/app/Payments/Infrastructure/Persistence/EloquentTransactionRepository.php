@@ -33,7 +33,8 @@ final readonly class EloquentTransactionRepository implements TransactionReposit
             }
         });
 
-        $transaction->clearRecordedEvents();
+        // Runs after the outermost commit, so events survive if an enclosing transaction rolls back.
+        DB::afterCommit(fn () => $transaction->clearRecordedEvents());
     }
 
     /**

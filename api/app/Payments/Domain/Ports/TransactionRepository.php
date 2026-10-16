@@ -10,7 +10,8 @@ interface TransactionRepository
 {
     /**
      * Persists the current state together with the recorded events in a single database
-     * transaction, and clears the events only after the commit, so a failed save can be retried.
+     * transaction, and clears the events only after the outermost commit, so a failed or rolled
+     * back save can be retried.
      */
     public function save(Transaction $transaction): void;
 }

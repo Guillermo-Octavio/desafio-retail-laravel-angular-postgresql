@@ -128,3 +128,21 @@ it('keeps the unsaved events after a failed save so a retry stores them', functi
         ->and(array_column(StoredPayments::events(), 'to_status'))->toBe(['PENDING', 'DECLINED'])
         ->and($transaction->recordedEvents())->toBe([]);
 });
+
+it('keeps the events when an outer database transaction rolls back', function () {
+    $transaction = PaymentFixtures::newTransaction();
+    $this->repository->save($transaction);
+    $transaction->decline(DeclineReason::CARD_EXPIRED, PaymentFixtures::at('12:00:01'));
+
+    DB::beginTransaction();
+    $this->repository->save($transaction);
+    DB::rollBack();
+
+    expect($transaction->recordedEvents())->toHaveCount(1)
+        ->and(DB::table('transactions')->value('status'))->toBe('PENDING');
+
+    $this->repository->save($transaction);
+
+    expect(array_column(StoredPayments::events(), 'to_status'))->toBe(['PENDING', 'DECLINED'])
+        ->and($transaction->recordedEvents())->toBe([]);
+});
