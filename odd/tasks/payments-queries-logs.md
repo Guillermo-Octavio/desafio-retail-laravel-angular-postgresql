@@ -29,13 +29,25 @@ Decisiones aprobadas:
 
 | ID | Specs | Ruta | Estado | Evidencia |
 |----|-------|------|--------|-----------|
-| T1 | S1 | inline | pendiente | |
-| T2 | S2 | inline | pendiente | |
-| T3 | S3 | inline | pendiente | |
-| T4 | S4 | inline | pendiente | |
+| T1 | S1 | inline | hecho | b2fb688; RED: 4 pruebas fallando |
+| T2 | S2 | inline | hecho | 5b28aa5; RED: 10 pruebas fallando |
+| T3 | S3 | inline | hecho | 79b8a9f (junto con T4); RED: 8 pruebas fallando; se confirmó que la prueba detecta errores quitando el `transaction_id` del contexto |
+| T4 | S4 | inline | hecho | 79b8a9f; verificación en vivo con `docker compose logs \| grep <correlation_id>` en `api` y `acquirer-mock`, y 0 apariciones del PAN |
 
 Ruta inline: tareas secuenciales; no hay motivo de delegación.
 
 ## Log
 
 - **L1** (2026-10-16) Propuesta B2 aprobada: "ok", con sus dos decisiones.
+- **L2** Diseño:
+  - `TransactionSummary` es el modelo de lectura que comparten el `POST` (desde el agregado) y los `GET` (desde la base), con un solo `TransactionResource`;
+  - el detalle y el listado no van envueltos en `data` en el nivel superior, igual que el `POST`; el listado usa `data` y `meta`;
+  - `TransactionId::tryFrom()` permite que un identificador mal formado dé `404` sin capturar excepciones;
+  - `ListTransactions` limita `per_page` a 100 en lugar de rechazarlo (SUP-13).
+- **L3** Logs:
+  - `Application` usa PSR-3 y el puerto `LogContext`, implementado con `Context`;
+  - el formulario registra `payment.validation_failed` solo con los nombres de los campos;
+  - `payment.unexpected_error` reemplaza el reporte por defecto;
+  - el mock registra `acquirer_mock.authorized`;
+  - en Compose, `LOG_CHANNEL=stderr` con `JsonFormatter` para `api` y `acquirer-mock`.
+- **L4** Se aclaró HU-07: el detalle tiene los mismos campos que la creación, más `events`. Verificación local: 387 pruebas aprobadas.
