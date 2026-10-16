@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Support;
 
+use App\Payments\Application\Ports\RequestFingerprinter;
+
 /**
  * Raw table rows used to check the database constraints directly, bypassing the domain.
  */
@@ -100,5 +102,17 @@ final class PaymentRows
         }
 
         return $body;
+    }
+
+    /**
+     * A key still being processed for the base payment body, with its real fingerprint.
+     *
+     * @return array<string, mixed>
+     */
+    public static function inProgressKeyForBaseBody(string $idempotencyKey): array
+    {
+        $fingerprint = app(RequestFingerprinter::class)->fingerprint(PaymentFixtures::command(idempotencyKey: $idempotencyKey));
+
+        return self::idempotencyKey(['idempotency_key' => $idempotencyKey, 'request_fingerprint' => $fingerprint->value]);
     }
 }

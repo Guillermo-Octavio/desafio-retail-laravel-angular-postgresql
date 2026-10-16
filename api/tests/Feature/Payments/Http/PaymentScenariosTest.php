@@ -123,12 +123,9 @@ describe('HU-06 Evitar pagos duplicados', function () {
     });
 
     it('answers IN_PROGRESS while the first request with the key has not finished', function () {
-        DB::table('idempotency_keys')->insert(PaymentRows::idempotencyKey([
-            'idempotency_key' => 'key-001',
-            'request_fingerprint' => str_repeat('0', 64),
-        ]));
+        DB::table('idempotency_keys')->insert(PaymentRows::inProgressKeyForBaseBody('key-001'));
 
-        ($this->pay)()->assertStatus(409);
+        ($this->pay)()->assertStatus(409)->assertJsonPath('error.code', 'IDEMPOTENCY_KEY_IN_PROGRESS');
         expect(DB::table('transactions')->count())->toBe(0);
     });
 });

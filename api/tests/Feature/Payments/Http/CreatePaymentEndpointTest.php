@@ -124,8 +124,9 @@ it('does not report expected client errors as application errors', function () {
     $this->postJson('/api/payments', PaymentRows::paymentBody(['amount' => 15000]), ['Idempotency-Key' => 'key-001']);
     $this->postJson('/api/payments', PaymentRows::paymentBody(['amount' => 20000]), ['Idempotency-Key' => 'key-001']);
 
-    DB::table('idempotency_keys')->insert(PaymentRows::idempotencyKey(['idempotency_key' => 'key-in-progress']));
-    $this->postJson('/api/payments', PaymentRows::paymentBody(), ['Idempotency-Key' => 'key-in-progress']);
+    DB::table('idempotency_keys')->insert(PaymentRows::inProgressKeyForBaseBody('key-in-progress'));
+    $this->postJson('/api/payments', PaymentRows::paymentBody(), ['Idempotency-Key' => 'key-in-progress'])
+        ->assertJsonPath('error.code', 'IDEMPOTENCY_KEY_IN_PROGRESS');
 
     Exceptions::assertNotReported(MissingIdempotencyKey::class);
     Exceptions::assertNotReported(IdempotencyKeyReused::class);
