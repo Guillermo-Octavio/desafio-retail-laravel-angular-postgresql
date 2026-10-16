@@ -24,6 +24,7 @@ use App\Payments\Infrastructure\Logging\LaravelLogContext;
 use App\Payments\Infrastructure\Persistence\EloquentTransactionQueries;
 use App\Payments\Infrastructure\Persistence\EloquentTransactionRepository;
 use App\Payments\Infrastructure\Persistence\PostgresIdempotencyStore;
+use DateInvalidTimeZoneException;
 use DateTimeZone;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\ServiceProvider;
@@ -47,9 +48,7 @@ final class PaymentsServiceProvider extends ServiceProvider
 
     public function register(): void
     {
-        $this->app->singleton(BusinessTimezone::class, fn () => new BusinessTimezone(
-            new DateTimeZone(self::businessTimezoneName()),
-        ));
+        $this->app->singleton(BusinessTimezone::class, fn () => new BusinessTimezone(self::businessTimezone()));
 
         $this->app->singleton(RetryPolicy::class, fn () => new RetryPolicy(
             (int) config('payments.acquirer.max_attempts'),
@@ -81,17 +80,21 @@ final class PaymentsServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        self::businessTimezoneName();
+        self::businessTimezone();
     }
 
-    private static function businessTimezoneName(): string
+    /**
+     * Accepts every zone PHP knows, aliases and offsets included, so a working setting never
+     * stops the application; only a zone that does not exist is rejected.
+     */
+    private static function businessTimezone(): DateTimeZone
     {
         $name = (string) config('payments.business_timezone');
 
-        if (! in_array($name, DateTimeZone::listIdentifiers(), true)) {
-            throw InvalidBusinessTimezone::named($name);
+        try {
+            return new DateTimeZone($name);
+        } catch (DateInvalidTimeZoneException $error) {
+            throw InvalidBusinessTimezone::named($name, $error);
         }
-
-        return $name;
     }
 }

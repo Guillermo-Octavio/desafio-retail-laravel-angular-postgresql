@@ -69,3 +69,12 @@ it('refuses to start with a business timezone that does not exist', function (st
 
     (new PaymentsServiceProvider(app()))->boot();
 })->with(['America/Santigo', ''])->throws(InvalidBusinessTimezone::class);
+
+it('starts with any timezone PHP accepts, including aliases and offsets', function (string $timezone) {
+    config(['payments.business_timezone' => $timezone]);
+    app()->forgetInstance(BusinessTimezone::class);
+
+    (new PaymentsServiceProvider(app()))->boot();
+
+    expect(app(BusinessTimezone::class)->zone)->toBeInstanceOf(DateTimeZone::class);
+})->with(['Etc/UTC', 'GMT', 'US/Pacific', '-03:00', 'america/santiago']);
