@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Payments\Application\Ports\RequestFingerprinter;
 use App\Payments\Domain\Ports\Clock;
 use App\Payments\Domain\Ports\IdempotencyStore;
 use App\Payments\Domain\Ports\TransactionIdGenerator;
 use App\Payments\Domain\Ports\TransactionRepository;
+use App\Payments\Infrastructure\HmacRequestFingerprinter;
 use App\Payments\Infrastructure\Persistence\EloquentTransactionRepository;
 use App\Payments\Infrastructure\Persistence\PostgresIdempotencyStore;
 use App\Payments\Infrastructure\SystemClock;
@@ -19,6 +21,7 @@ it('binds each payments port to its adapter', function (string $port, string $ad
     'transaction id generator' => [TransactionIdGenerator::class, UuidV7TransactionIdGenerator::class],
     'transaction repository' => [TransactionRepository::class, EloquentTransactionRepository::class],
     'idempotency store' => [IdempotencyStore::class, PostgresIdempotencyStore::class],
+    'request fingerprinter' => [RequestFingerprinter::class, HmacRequestFingerprinter::class],
 ]);
 
 it('tells the current time in UTC with microseconds', function () {

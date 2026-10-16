@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Support;
 
+use App\Payments\Application\ProcessPaymentCommand;
 use App\Payments\Domain\Card\CardBrand;
 use App\Payments\Domain\Card\CardDetails;
 use App\Payments\Domain\Card\CardExpiry;
@@ -12,6 +13,7 @@ use App\Payments\Domain\Card\Cvv;
 use App\Payments\Domain\Card\MaskedCard;
 use App\Payments\Domain\CorrelationId;
 use App\Payments\Domain\Currency;
+use App\Payments\Domain\Idempotency\IdempotencyKey;
 use App\Payments\Domain\Idempotency\RequestFingerprint;
 use App\Payments\Domain\MerchantId;
 use App\Payments\Domain\Money;
@@ -51,6 +53,28 @@ final class PaymentFixtures
             new MerchantId('merchant-001'),
             new Money($amount, $currency),
             new CardDetails(new CardNumber($cardNumber), new CardExpiry($expiryMonth, $expiryYear), new Cvv('123')),
+        );
+    }
+
+    public static function command(
+        string $merchantId = 'merchant-001',
+        string $idempotencyKey = 'key-001',
+        string $correlationId = 'corr-123',
+        int $amount = 15000,
+        Currency $currency = Currency::CLP,
+        string $cardNumber = self::VALID_CARD,
+        string $holderName = 'Ada Lovelace',
+        int $expiryMonth = 12,
+        int $expiryYear = 2030,
+        string $cvv = '123',
+    ): ProcessPaymentCommand {
+        return new ProcessPaymentCommand(
+            new MerchantId($merchantId),
+            new IdempotencyKey($idempotencyKey),
+            new CorrelationId($correlationId),
+            new Money($amount, $currency),
+            new CardDetails(new CardNumber($cardNumber), new CardExpiry($expiryMonth, $expiryYear), new Cvv($cvv)),
+            $holderName,
         );
     }
 

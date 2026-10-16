@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Payments\Infrastructure;
 
+use App\Payments\Application\Ports\RequestFingerprinter;
 use App\Payments\Application\Ports\Sleeper;
 use App\Payments\Application\RetryPolicy;
 use App\Payments\Domain\Ports\Clock;
@@ -35,6 +36,10 @@ final class PaymentsServiceProvider extends ServiceProvider
             (int) config('payments.acquirer.initial_backoff_ms'),
             (int) config('payments.acquirer.max_jitter_ms'),
             new Randomizer,
+        ));
+
+        $this->app->singleton(RequestFingerprinter::class, fn () => new HmacRequestFingerprinter(
+            (string) config('app.key'),
         ));
     }
 }
