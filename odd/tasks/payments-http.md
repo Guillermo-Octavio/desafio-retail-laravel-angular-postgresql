@@ -31,10 +31,10 @@ Fuera de alcance (unidad B2): los `GET`, los eventos en el detalle y los logs JS
 
 | ID | Specs | Ruta | Estado | Evidencia |
 |----|-------|------|--------|-----------|
-| T1 | S1 | inline | pendiente | |
-| T2 | S2 | inline | pendiente | |
-| T3 | S3 | inline | pendiente | |
-| T4 | S4 | inline | pendiente | |
+| T1 | S1 | inline | hecho | a38aacf; RED: 6 pruebas fallando |
+| T2 | S2 | inline | hecho | 80ac8e3; RED: 11 pruebas fallando |
+| T3 | S3 | inline | hecho | f703db2; RED: 23 pruebas fallando |
+| T4 | S4 | inline | hecho | 8b29421; pruebas de aceptación sobre comportamiento de T1 a T3, sin RED propio; prueba de humo con el stack real por el gateway |
 
 Ruta inline: tareas secuenciales sobre el mismo flujo HTTP; no hay motivo de delegación.
 
@@ -44,3 +44,9 @@ Ruta inline: tareas secuenciales sobre el mismo flujo HTTP; no hay motivo de del
 - **L2** Decisiones de diseño:
   - el agregado expone `updatedAt()`, que usan la respuesta y el repositorio, para que coincidan;
   - el presentador se enlaza en un provider de `Payments/Http`, porque `Infrastructure` no puede depender de `Http`.
+- **L3** Observaciones de GGA aplicadas:
+  - prueba del caso `HTTP_ERROR` (`405`);
+  - la advertencia `correlation_id.replaced` se escribe después de agregar el identificador al `Context`, para que también lleve `correlation_id` (sección 4 de AGENTS.md, regla 6).
+- **L4** Decisión aceptada, observada por GGA: el Form Request de `Http` arma los value objects del dominio para construir `ProcessPaymentCommand`. El comando ya está definido con tipos del dominio, y el Form Request es el borde que convierte la entrada.
+- **L5** Se quitó la ruta `/user` del scaffold, que usaba Sanctum y no corresponde a este servicio. Se documentaron en la sección 8 de la arquitectura los códigos `NOT_FOUND` y `HTTP_ERROR`, y en SUP-12 la regla de correlación.
+- **L6** Verificación: 337 pruebas aprobadas, dos ejecuciones seguidas. Prueba de humo por `:8080` con las cuatro tarjetas de prueba (`APPROVED`, `DECLINED`/`INSUFFICIENT_FUNDS`, `APPROVED` tras un reintento, `FAILED`/`ACQUIRER_UNAVAILABLE`), propagación de `X-Correlation-Id` y repetición con `Idempotent-Replayed: true`.
