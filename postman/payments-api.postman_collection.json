@@ -61,6 +61,7 @@
               "const month = now.getUTCMonth() + 1;",
               "pm.collectionVariables.set('currentMonth', month);",
               "pm.collectionVariables.set('currentYear', year);",
+              "pm.collectionVariables.set('futureYear', year + 5);",
               "pm.collectionVariables.set('previousMonth', month === 1 ? 12 : month - 1);",
               "pm.collectionVariables.set('previousMonthYear', month === 1 ? year - 1 : year);"
             ]
@@ -115,7 +116,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -181,7 +182,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": null,\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": null,\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -235,7 +236,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 0,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 0,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -289,7 +290,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": -100,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": -100,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -343,7 +344,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 10.5,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 10.5,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -397,7 +398,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": \"1050\",\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": \"1050\",\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -451,7 +452,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"EUR\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"EUR\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -505,7 +506,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -559,7 +560,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111abcd11111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111abcd11111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -613,7 +614,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": null,\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": null,\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -667,7 +668,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 13,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 13,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -721,7 +722,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"12\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"12\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -775,7 +776,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": 123\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": 123\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -829,7 +830,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -889,7 +890,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 5000000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 5000000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -942,7 +943,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 5000001,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 5000001,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -995,7 +996,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 1050,\n  \"currency\": \"USD\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 1050,\n  \"currency\": \"USD\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1050,7 +1051,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 500000,\n  \"currency\": \"USD\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 500000,\n  \"currency\": \"USD\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1103,7 +1104,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 500001,\n  \"currency\": \"USD\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 500001,\n  \"currency\": \"USD\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1156,7 +1157,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111112\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111112\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1321,7 +1322,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4000000000000002\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4000000000000002\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1384,7 +1385,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4000000000000259\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4000000000000259\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1439,7 +1440,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4000000000000119\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4000000000000119\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1494,7 +1495,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1550,7 +1551,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1603,7 +1604,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 20000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 20000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1655,7 +1656,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"other-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"other-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2194,7 +2195,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2246,7 +2247,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2302,7 +2303,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2358,7 +2359,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 0,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 0,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"123\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2416,7 +2417,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"987\"\n  }\n}",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": {{futureYear}},\n    \"cvv\": \"987\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
