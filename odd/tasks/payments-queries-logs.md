@@ -51,3 +51,13 @@ Ruta inline: tareas secuenciales; no hay motivo de delegación.
   - el mock registra `acquirer_mock.authorized`;
   - en Compose, `LOG_CHANNEL=stderr` con `JsonFormatter` para `api` y `acquirer-mock`.
 - **L4** Se aclaró HU-07: el detalle tiene los mismos campos que la creación, más `events`. Verificación local: 387 pruebas aprobadas.
+- **L5** Verificador independiente: S1, S3 y S4 en PASS; S2 en PARTIAL por el bloqueo B1. Con un `page` muy grande, `(page-1)*per_page` desbordaba el entero y respondía `500`.
+  - Corrección (1451b91): `page` tiene un máximo de 1.000.000. Recheck en vivo: `page=9223372036854775807` y `922337203685477580` dan `422`, y `page=1000000` da `200`. RED: 2 pruebas fallando.
+  - Advisories aplicados:
+    - `phpunit.xml` fuerza `APP_ENV=testing` y `LOG_CHANNEL=null`, y la suite ya no escribe logs en la salida del contenedor (0 líneas);
+    - la prueba de `payment.unexpected_error` verifica la clase de la excepción y una sola línea.
+  - Advisories no aplicados:
+    - el `transaction_id` en `idempotency.replayed` y `idempotency.conflict`, porque la reserva no lo conoce;
+    - la sangría de las líneas de `artisan serve` en el mock;
+    - el límite de 8192 bytes por línea de php-fpm.
+  - Pasan 390 pruebas.
