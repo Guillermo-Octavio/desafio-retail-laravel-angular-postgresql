@@ -167,3 +167,19 @@ it('keeps numbering its events after the recorded ones are cleared', function ()
 
     expect(array_map(fn (TransactionEvent $event) => $event->sequence, $transaction->recordedEvents()))->toBe([2, 3, 4]);
 });
+
+it('records the time of its last change', function () {
+    $transaction = PaymentFixtures::newTransaction();
+
+    expect($transaction->updatedAt())->toEqual(PaymentFixtures::at('12:00:00.000001'));
+
+    $transaction->startProcessing(PaymentFixtures::at('12:00:01'));
+    $transaction->recordAcquirerAttempt(1, AcquirerOutcome::APPROVED, 85, null, PaymentFixtures::at('12:00:02'));
+
+    expect($transaction->updatedAt())->toEqual(PaymentFixtures::at('12:00:02'));
+
+    $transaction->approve('A1B2C3', PaymentFixtures::at('12:00:03'));
+
+    expect($transaction->updatedAt())->toEqual(PaymentFixtures::at('12:00:03'))
+        ->and($transaction->createdAt())->toEqual(PaymentFixtures::at('12:00:00.000001'));
+});

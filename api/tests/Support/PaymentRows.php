@@ -73,4 +73,32 @@ final class PaymentRows
             ...$overrides,
         ];
     }
+
+    /**
+     * The base payment request body of the user stories.
+     *
+     * @param  array<string, mixed>  $overrides  dot-notation keys, such as "card.number"
+     * @return array<string, mixed>
+     */
+    public static function paymentBody(array $overrides = []): array
+    {
+        $body = [
+            'merchant_id' => 'merchant-001',
+            'amount' => 15000,
+            'currency' => 'CLP',
+            'card' => [
+                'number' => '4111111111111111',
+                'holder_name' => 'Ada Lovelace',
+                'expiry_month' => 12,
+                'expiry_year' => 2030,
+                'cvv' => '123',
+            ],
+        ];
+
+        foreach ($overrides as $key => $value) {
+            data_set($body, $key, $value);
+        }
+
+        return $body;
+    }
 }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Payments\Infrastructure\Persistence;
 
-use App\Payments\Domain\Ports\Clock;
 use App\Payments\Domain\Ports\TransactionRepository;
 use App\Payments\Domain\Transaction;
 use App\Payments\Domain\TransactionEvent;
@@ -17,8 +16,6 @@ final readonly class EloquentTransactionRepository implements TransactionReposit
     private const array MUTABLE_COLUMNS = ['status', 'decline_reason', 'acquirer_reference', 'updated_at'];
 
     private const array EVENT_IDENTITY = ['transaction_id', 'sequence'];
-
-    public function __construct(private Clock $clock) {}
 
     public function save(Transaction $transaction): void
     {
@@ -58,7 +55,7 @@ final readonly class EloquentTransactionRepository implements TransactionReposit
             'card_last4' => $transaction->card()->last4,
             'correlation_id' => $transaction->correlationId()->value,
             'created_at' => PostgresTimestamp::format($transaction->createdAt()),
-            'updated_at' => PostgresTimestamp::format($this->clock->now()),
+            'updated_at' => PostgresTimestamp::format($transaction->updatedAt()),
         ];
     }
 

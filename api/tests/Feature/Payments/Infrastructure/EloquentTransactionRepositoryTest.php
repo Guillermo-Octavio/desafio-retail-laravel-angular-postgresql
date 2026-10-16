@@ -7,12 +7,11 @@ use App\Payments\Domain\DeclineReason;
 use App\Payments\Infrastructure\Persistence\EloquentTransactionRepository;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
-use Tests\Support\FixedClock;
 use Tests\Support\PaymentFixtures;
 use Tests\Support\StoredPayments;
 
 beforeEach(function () {
-    $this->repository = new EloquentTransactionRepository(new FixedClock('2026-10-15 12:00:09'));
+    $this->repository = new EloquentTransactionRepository;
 });
 
 it('stores a new transaction with its creation event', function () {
@@ -43,8 +42,10 @@ it('stores a new transaction with its creation event', function () {
         ]]);
 });
 
-it('keeps the creation time and records the time of the last save', function () {
-    $this->repository->save(PaymentFixtures::newTransaction());
+it('stores the creation time and the time of the last change', function () {
+    $transaction = PaymentFixtures::newTransaction();
+    $transaction->startProcessing(PaymentFixtures::at('12:00:09'));
+    $this->repository->save($transaction);
 
     $times = DB::table('transactions')
         ->selectRaw("to_char(created_at AT TIME ZONE 'UTC', 'HH24:MI:SS.US') as created_at, to_char(updated_at AT TIME ZONE 'UTC', 'HH24:MI:SS.US') as updated_at")

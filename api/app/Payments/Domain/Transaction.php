@@ -29,6 +29,8 @@ final class Transaction
 
     private int $lastEventSequence = 0;
 
+    private DateTimeImmutable $updatedAt;
+
     private function __construct(
         private readonly TransactionId $id,
         private readonly MerchantId $merchantId,
@@ -36,7 +38,9 @@ final class Transaction
         private readonly MaskedCard $card,
         private readonly CorrelationId $correlationId,
         private readonly DateTimeImmutable $createdAt,
-    ) {}
+    ) {
+        $this->updatedAt = $createdAt;
+    }
 
     public static function create(
         TransactionId $id,
@@ -114,6 +118,7 @@ final class Transaction
             $this->correlationId,
             $occurredAt,
         );
+        $this->updatedAt = $occurredAt;
     }
 
     /**
@@ -179,6 +184,11 @@ final class Transaction
         return $this->createdAt;
     }
 
+    public function updatedAt(): DateTimeImmutable
+    {
+        return $this->updatedAt;
+    }
+
     private function transitionTo(TransactionStatus $next, ?DeclineReason $reason, DateTimeImmutable $occurredAt): void
     {
         if (! $this->status->canTransitionTo($next)) {
@@ -195,5 +205,6 @@ final class Transaction
         );
         $this->status = $next;
         $this->declineReason = $reason;
+        $this->updatedAt = $occurredAt;
     }
 }

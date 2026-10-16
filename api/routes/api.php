@@ -1,8 +1,7 @@
 <?php
 
-use Illuminate\Http\Request;
+use App\Payments\Http\Controllers\CreatePaymentController;
+use App\Payments\Http\Middleware\RequireIdempotencyKey;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+Route::post('/payments', CreatePaymentController::class)->middleware(RequireIdempotencyKey::class);
