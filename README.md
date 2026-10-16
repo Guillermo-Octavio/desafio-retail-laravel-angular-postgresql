@@ -209,6 +209,24 @@ con verificaciones de accesibilidad de axe, los escenarios de HU-12 y el contras
 docker compose exec -T web npx ng test --watch=false
 ```
 
+### Colección de Postman
+
+[`postman/payments-api.postman_collection.json`](postman/payments-api.postman_collection.json)
+recorre la API por historia de usuario (HU-01 a HU-11, más el formato de errores). Son 48
+solicitudes con 182 verificaciones automáticas contra el stack levantado.
+
+- **Postman:** importar el archivo y ejecutar la colección completa, en orden, con el Collection
+  Runner. La variable `baseUrl` apunta a `http://localhost:8080`.
+- **Línea de comandos**, con Newman:
+
+  ```sh
+  npx newman run postman/payments-api.postman_collection.json
+  ```
+
+La primera solicitud genera un identificador único por corrida, así que la colección se puede
+ejecutar muchas veces sin que choquen las claves de idempotencia. Las fechas de vencimiento se
+calculan respecto del mes en curso.
+
 La base `payments_test` se crea al inicializar el volumen de PostgreSQL
 ([script](docker/postgres/initdb/01-create-test-database.sh)). Si el volumen es anterior, se crea
 una sola vez con:

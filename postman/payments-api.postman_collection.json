@@ -1,0 +1,2522 @@
+{
+  "info": {
+    "name": "Payment Processing Service",
+    "description": "Automated checks of the payments API, organized by user story (docs/02-user-stories.md). Run the whole collection in order with the Collection Runner or Newman: the first request prepares a unique run id, and later requests reuse ids saved by earlier ones. Requires the stack running (docker compose up -d) at {{baseUrl}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Every response, including errors, carries the correlation id (HU-10).",
+          "pm.test('returns X-Correlation-Id', () => pm.expect(pm.response.headers.get('X-Correlation-Id')).to.be.a('string').and.not.empty);"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "runId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Prepare the run",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/up",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "up"
+          ]
+        },
+        "description": "Health check of the API through the gateway; also prepares the variables of the run."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Unique per run, so the idempotency keys and merchants never collide with earlier runs.",
+              "pm.collectionVariables.set('runId', `${Date.now()}`);",
+              "const now = new Date();",
+              "const year = now.getUTCFullYear();",
+              "const month = now.getUTCMonth() + 1;",
+              "pm.collectionVariables.set('currentMonth', month);",
+              "pm.collectionVariables.set('currentYear', year);",
+              "pm.collectionVariables.set('previousMonth', month === 1 ? 12 : month - 1);",
+              "pm.collectionVariables.set('previousMonthYear', month === 1 ? year - 1 : year);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('responds 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "HU-01 Enviar un pago",
+      "description": "Creates a payment and checks the creation response.",
+      "item": [
+        {
+          "name": "Approved payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-approved"
+              },
+              {
+                "key": "X-Correlation-Id",
+                "value": "corr-{{runId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('status is APPROVED', () => pm.expect(pm.response.json().status).to.eql('APPROVED'));",
+                  "pm.test('decline_reason is None', () => pm.expect(pm.response.json().decline_reason).to.eql(null));",
+                  "",
+                  "const payment = pm.response.json();",
+                  "pm.test('returns every field of HU-01', () => pm.expect(payment).to.have.all.keys('transaction_id', 'merchant_id', 'amount', 'currency', 'status', 'decline_reason', 'card', 'created_at', 'updated_at'));",
+                  "pm.test('only exposes the brand and the last four digits', () => pm.expect(payment.card).to.eql({ brand: 'VISA', last4: '1111' }));",
+                  "pm.test('is not a replay', () => pm.expect(pm.response.headers.has('Idempotent-Replayed')).to.be.false);",
+                  "pm.collectionVariables.set('approvedTransactionId', payment.transaction_id);",
+                  "pm.collectionVariables.set('approvedResponse', pm.response.text());"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HU-02 Rechazar datos de entrada inválidos",
+      "description": "Invalid input answers 422 VALIDATION_ERROR and creates nothing.",
+      "item": [
+        {
+          "name": "merchant_id missing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-invalid-merchant_id-missing"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": null,\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 422', () => pm.response.to.have.status(422));",
+                  "",
+                  "pm.test('error code is VALIDATION_ERROR', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR'));",
+                  "",
+                  "pm.test('reports the field merchant_id', () => pm.expect(pm.response.json().error.details).to.have.property('merchant_id'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "amount zero",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-invalid-amount-zero"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 0,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 422', () => pm.response.to.have.status(422));",
+                  "",
+                  "pm.test('error code is VALIDATION_ERROR', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR'));",
+                  "",
+                  "pm.test('reports the field amount', () => pm.expect(pm.response.json().error.details).to.have.property('amount'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "amount negative",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-invalid-amount-negative"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": -100,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 422', () => pm.response.to.have.status(422));",
+                  "",
+                  "pm.test('error code is VALIDATION_ERROR', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR'));",
+                  "",
+                  "pm.test('reports the field amount', () => pm.expect(pm.response.json().error.details).to.have.property('amount'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "amount with decimals",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-invalid-amount-with-decimals"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 10.5,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 422', () => pm.response.to.have.status(422));",
+                  "",
+                  "pm.test('error code is VALIDATION_ERROR', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR'));",
+                  "",
+                  "pm.test('reports the field amount', () => pm.expect(pm.response.json().error.details).to.have.property('amount'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "amount as text",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-invalid-amount-as-text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": \"1050\",\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 422', () => pm.response.to.have.status(422));",
+                  "",
+                  "pm.test('error code is VALIDATION_ERROR', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR'));",
+                  "",
+                  "pm.test('reports the field amount', () => pm.expect(pm.response.json().error.details).to.have.property('amount'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "currency not supported",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-invalid-currency-not-supported"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"EUR\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 422', () => pm.response.to.have.status(422));",
+                  "",
+                  "pm.test('error code is VALIDATION_ERROR', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR'));",
+                  "",
+                  "pm.test('reports the field currency', () => pm.expect(pm.response.json().error.details).to.have.property('currency'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "card number too short",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-invalid-card-number-too-short"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 422', () => pm.response.to.have.status(422));",
+                  "",
+                  "pm.test('error code is VALIDATION_ERROR', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR'));",
+                  "",
+                  "pm.test('reports the field card.number', () => pm.expect(pm.response.json().error.details).to.have.property('card.number'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "card number with letters",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-invalid-card-number-with-letters"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111abcd11111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 422', () => pm.response.to.have.status(422));",
+                  "",
+                  "pm.test('error code is VALIDATION_ERROR', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR'));",
+                  "",
+                  "pm.test('reports the field card.number', () => pm.expect(pm.response.json().error.details).to.have.property('card.number'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "holder name missing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-invalid-holder-name-missing"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": null,\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 422', () => pm.response.to.have.status(422));",
+                  "",
+                  "pm.test('error code is VALIDATION_ERROR', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR'));",
+                  "",
+                  "pm.test('reports the field card.holder_name', () => pm.expect(pm.response.json().error.details).to.have.property('card.holder_name'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "expiry month 13",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-invalid-expiry-month-13"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 13,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 422', () => pm.response.to.have.status(422));",
+                  "",
+                  "pm.test('error code is VALIDATION_ERROR', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR'));",
+                  "",
+                  "pm.test('reports the field card.expiry_month', () => pm.expect(pm.response.json().error.details).to.have.property('card.expiry_month'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "cvv with 2 digits",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-invalid-cvv-with-2-digits"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"12\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 422', () => pm.response.to.have.status(422));",
+                  "",
+                  "pm.test('error code is VALIDATION_ERROR', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR'));",
+                  "",
+                  "pm.test('reports the field card.cvv', () => pm.expect(pm.response.json().error.details).to.have.property('card.cvv'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "cvv as a number",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-invalid-cvv-as-a-number"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": 123\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 422', () => pm.response.to.have.status(422));",
+                  "",
+                  "pm.test('error code is VALIDATION_ERROR', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR'));",
+                  "",
+                  "pm.test('reports the field card.cvv', () => pm.expect(pm.response.json().error.details).to.have.property('card.cvv'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Several invalid fields at once",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-invalid-several"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 422', () => pm.response.to.have.status(422));",
+                  "",
+                  "pm.test('reports the field amount', () => pm.expect(pm.response.json().error.details).to.have.property('amount'));",
+                  "",
+                  "pm.test('reports the field currency', () => pm.expect(pm.response.json().error.details).to.have.property('currency'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HU-03 Aplicar reglas de negocio",
+      "description": "Business rules decline before calling the acquirer; the response is still 201.",
+      "item": [
+        {
+          "name": "CLP at the limit is approved",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-clp-limit"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 5000000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('status is APPROVED', () => pm.expect(pm.response.json().status).to.eql('APPROVED'));",
+                  "pm.test('decline_reason is None', () => pm.expect(pm.response.json().decline_reason).to.eql(null));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CLP above the limit is declined",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-clp-over"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 5000001,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('status is DECLINED', () => pm.expect(pm.response.json().status).to.eql('DECLINED'));",
+                  "pm.test('decline_reason is AMOUNT_LIMIT_EXCEEDED', () => pm.expect(pm.response.json().decline_reason).to.eql(\"AMOUNT_LIMIT_EXCEEDED\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "USD with cents keeps the amount",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-usd-cents"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 1050,\n  \"currency\": \"USD\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('status is APPROVED', () => pm.expect(pm.response.json().status).to.eql('APPROVED'));",
+                  "pm.test('decline_reason is None', () => pm.expect(pm.response.json().decline_reason).to.eql(null));",
+                  "",
+                  "pm.test('returns the amount in cents', () => pm.expect(pm.response.json()).to.include({ amount: 1050, currency: 'USD' }));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "USD at the limit is approved",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-usd-limit"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 500000,\n  \"currency\": \"USD\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('status is APPROVED', () => pm.expect(pm.response.json().status).to.eql('APPROVED'));",
+                  "pm.test('decline_reason is None', () => pm.expect(pm.response.json().decline_reason).to.eql(null));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "USD above the limit is declined",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-usd-over"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 500001,\n  \"currency\": \"USD\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('status is DECLINED', () => pm.expect(pm.response.json().status).to.eql('DECLINED'));",
+                  "pm.test('decline_reason is AMOUNT_LIMIT_EXCEEDED', () => pm.expect(pm.response.json().decline_reason).to.eql(\"AMOUNT_LIMIT_EXCEEDED\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Card that fails Luhn is declined",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-luhn"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111112\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('status is DECLINED', () => pm.expect(pm.response.json().status).to.eql('DECLINED'));",
+                  "pm.test('decline_reason is INVALID_CARD_NUMBER', () => pm.expect(pm.response.json().decline_reason).to.eql(\"INVALID_CARD_NUMBER\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Card that expired last month is declined",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-expired"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": {{previousMonth}},\n    \"expiry_year\": {{previousMonthYear}},\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('status is DECLINED', () => pm.expect(pm.response.json().status).to.eql('DECLINED'));",
+                  "pm.test('decline_reason is CARD_EXPIRED', () => pm.expect(pm.response.json().decline_reason).to.eql(\"CARD_EXPIRED\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Card that expires this month is approved",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-expires-this-month"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": {{currentMonth}},\n    \"expiry_year\": {{currentYear}},\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('status is APPROVED', () => pm.expect(pm.response.json().status).to.eql('APPROVED'));",
+                  "pm.test('decline_reason is None', () => pm.expect(pm.response.json().decline_reason).to.eql(null));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HU-04 Respetar la decisión del adquirente",
+      "description": "A decline from the acquirer is final.",
+      "item": [
+        {
+          "name": "Acquirer declines for insufficient funds",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-insufficient-funds"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4000000000000002\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('status is DECLINED', () => pm.expect(pm.response.json().status).to.eql('DECLINED'));",
+                  "pm.test('decline_reason is INSUFFICIENT_FUNDS', () => pm.expect(pm.response.json().decline_reason).to.eql(\"INSUFFICIENT_FUNDS\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HU-05 Tolerar errores temporales del adquirente",
+      "description": "Temporary errors are retried up to 3 attempts.",
+      "item": [
+        {
+          "name": "Recovers after one temporary error",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-retry"
+              },
+              {
+                "key": "X-Correlation-Id",
+                "value": "corr-retry-{{runId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4000000000000259\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('status is APPROVED', () => pm.expect(pm.response.json().status).to.eql('APPROVED'));",
+                  "pm.test('decline_reason is None', () => pm.expect(pm.response.json().decline_reason).to.eql(null));",
+                  "",
+                  "pm.collectionVariables.set('retriedTransactionId', pm.response.json().transaction_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fails as ACQUIRER_UNAVAILABLE after three errors",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-all-fail"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4000000000000119\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('status is FAILED', () => pm.expect(pm.response.json().status).to.eql('FAILED'));",
+                  "pm.test('decline_reason is ACQUIRER_UNAVAILABLE', () => pm.expect(pm.response.json().decline_reason).to.eql(\"ACQUIRER_UNAVAILABLE\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HU-06 Evitar pagos duplicados",
+      "description": "Idempotency by merchant and key.",
+      "item": [
+        {
+          "name": "Missing Idempotency-Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 400', () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test('error code is IDEMPOTENCY_KEY_MISSING', () => pm.expect(pm.response.json().error.code).to.eql('IDEMPOTENCY_KEY_MISSING'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Same key and content replays the original",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-approved"
+              },
+              {
+                "key": "X-Correlation-Id",
+                "value": "corr-replay-{{runId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('marks the response as replayed', () => pm.expect(pm.response.headers.get('Idempotent-Replayed')).to.eql('true'));",
+                  "pm.test('returns exactly the original body', () => pm.expect(pm.response.text()).to.eql(pm.collectionVariables.get('approvedResponse')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Same key with different content",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-approved"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 20000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 409', () => pm.response.to.have.status(409));",
+                  "",
+                  "pm.test('error code is IDEMPOTENCY_KEY_REUSED', () => pm.expect(pm.response.json().error.code).to.eql('IDEMPOTENCY_KEY_REUSED'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Same key for another merchant creates a new payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-approved"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"other-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('is not a replay', () => pm.expect(pm.response.headers.has('Idempotent-Replayed')).to.be.false);",
+                  "pm.test('is a different transaction', () => pm.expect(pm.response.json().transaction_id).to.not.eql(pm.collectionVariables.get('approvedTransactionId')));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HU-07 Consultar una transacción",
+      "description": "Detail of one transaction.",
+      "item": [
+        {
+          "name": "Existing transaction",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/{{approvedTransactionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "{{approvedTransactionId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const detail = pm.response.json();",
+                  "const created = JSON.parse(pm.collectionVariables.get('approvedResponse'));",
+                  "pm.test('has the same fields as the creation response', () => Object.keys(created).forEach((field) => pm.expect(detail[field]).to.eql(created[field])));",
+                  "pm.test('includes the events', () => pm.expect(detail.events).to.be.an('array').that.is.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unknown transaction",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/0199f0c2-6a1e-7c3a-9b2f-5d1e8a4c7b10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "0199f0c2-6a1e-7c3a-9b2f-5d1e8a4c7b10"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 404', () => pm.response.to.have.status(404));",
+                  "",
+                  "pm.test('error code is TRANSACTION_NOT_FOUND', () => pm.expect(pm.response.json().error.code).to.eql('TRANSACTION_NOT_FOUND'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Malformed id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/no-es-un-uuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "no-es-un-uuid"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 404', () => pm.response.to.have.status(404));",
+                  "",
+                  "pm.test('error code is TRANSACTION_NOT_FOUND', () => pm.expect(pm.response.json().error.code).to.eql('TRANSACTION_NOT_FOUND'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HU-08 Listar transacciones",
+      "description": "Filters, order and paging over the payments created by this run.",
+      "item": [
+        {
+          "name": "Filter by merchant and status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments?merchant_id=merchant-{{runId}}&status=DECLINED",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "merchant_id",
+                  "value": "merchant-{{runId}}"
+                },
+                {
+                  "key": "status",
+                  "value": "DECLINED"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const page = pm.response.json();",
+                  "pm.test('only lists declined payments of the merchant', () => page.data.forEach((t) => pm.expect(t).to.include({ merchant_id: `merchant-${pm.collectionVariables.get('runId')}`, status: 'DECLINED' })));",
+                  "pm.test('finds the declined payments of this run', () => pm.expect(page.meta.total).to.be.at.least(5));",
+                  "pm.test('lists items without events', () => pm.expect(page.data[0]).to.not.have.property('events'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter by merchant, newest first",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments?merchant_id=merchant-{{runId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "merchant_id",
+                  "value": "merchant-{{runId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const dates = pm.response.json().data.map((t) => t.created_at);",
+                  "pm.test('is ordered from newest to oldest', () => pm.expect(dates).to.eql([...dates].sort().reverse()));",
+                  "pm.test('uses 20 per page by default', () => pm.expect(pm.response.json().meta.per_page).to.eql(20));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "No matches",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments?merchant_id=nobody-{{runId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "merchant_id",
+                  "value": "nobody-{{runId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('answers an empty list', () => pm.expect(pm.response.json()).to.deep.include({ data: [] }));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unknown status filter",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments?status=PAID",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PAID"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 422', () => pm.response.to.have.status(422));",
+                  "",
+                  "pm.test('error code is VALIDATION_ERROR', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR'));",
+                  "",
+                  "pm.test('reports the field status', () => pm.expect(pm.response.json().error.details).to.have.property('status'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Page size is capped at 100",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments?per_page=500",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "500"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('uses 100 per page', () => pm.expect(pm.response.json().meta.per_page).to.eql(100));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Page past the last one",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments?merchant_id=merchant-{{runId}}&page=999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "merchant_id",
+                  "value": "merchant-{{runId}}"
+                },
+                {
+                  "key": "page",
+                  "value": "999"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('answers an empty page', () => pm.expect(pm.response.json().data).to.eql([]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Page too large to compute",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments?page=9223372036854775807",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "9223372036854775807"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 422', () => pm.response.to.have.status(422));",
+                  "",
+                  "pm.test('reports the field page', () => pm.expect(pm.response.json().error.details).to.have.property('page'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HU-09 Trazar el historial de la transacción",
+      "description": "The history of the payment that needed a retry.",
+      "item": [
+        {
+          "name": "History of a retried payment",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/{{retriedTransactionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "{{retriedTransactionId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const events = pm.response.json().events;",
+                  "pm.test('has the five events in order', () => pm.expect(events.map((e) => [e.type, e.from_status, e.to_status, e.metadata && e.metadata.outcome])).to.eql([",
+                  "  ['STATUS_CHANGED', null, 'PENDING', undefined],",
+                  "  ['STATUS_CHANGED', 'PENDING', 'PROCESSING', undefined],",
+                  "  ['ACQUIRER_ATTEMPT', null, null, 'TEMPORARY_ERROR'],",
+                  "  ['ACQUIRER_ATTEMPT', null, null, 'APPROVED'],",
+                  "  ['STATUS_CHANGED', 'PROCESSING', 'APPROVED', undefined],",
+                  "].map((row) => row.map((value) => (value === undefined ? null : value)))));",
+                  "pm.test('records the error of the failed attempt', () => pm.expect(events[2].metadata).to.include({ attempt: 1, error_code: 'HTTP_503' }));",
+                  "pm.test('every event has the correlation id of the request', () => events.forEach((e) => pm.expect(e.correlation_id).to.eql(`corr-retry-${pm.collectionVariables.get('runId')}`)));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HU-10 Correlacionar logs y eventos",
+      "description": "The correlation id travels with the request.",
+      "item": [
+        {
+          "name": "Uses the client correlation id",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-correlation"
+              },
+              {
+                "key": "X-Correlation-Id",
+                "value": "corr-client-{{runId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('returns the same correlation id', () => pm.expect(pm.response.headers.get('X-Correlation-Id')).to.eql(`corr-client-${pm.collectionVariables.get('runId')}`));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Generates a UUID when none is sent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-generated-correlation"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('returns a generated UUID', () => pm.expect(pm.response.headers.get('X-Correlation-Id')).to.match(/^[0-9a-f-]{36}$/));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Replaces an unusable correlation id",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-bad-correlation"
+              },
+              {
+                "key": "X-Correlation-Id",
+                "value": "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('returns a generated UUID instead', () => pm.expect(pm.response.headers.get('X-Correlation-Id')).to.match(/^[0-9a-f-]{36}$/));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Errors carry the correlation id too",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-error-correlation"
+              },
+              {
+                "key": "X-Correlation-Id",
+                "value": "corr-error-{{runId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 0,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"123\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 422', () => pm.response.to.have.status(422));",
+                  "",
+                  "pm.test('returns the correlation id on errors', () => pm.expect(pm.response.headers.get('X-Correlation-Id')).to.eql(`corr-error-${pm.collectionVariables.get('runId')}`));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HU-11 Proteger los datos de tarjeta",
+      "description": "The full card number and the CVV never come back.",
+      "item": [
+        {
+          "name": "Response without the card number or CVV",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{runId}}-card-data"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": \"merchant-{{runId}}\",\n  \"amount\": 15000,\n  \"currency\": \"CLP\",\n  \"card\": {\n    \"number\": \"4111111111111111\",\n    \"holder_name\": \"Ada Lovelace\",\n    \"expiry_month\": 12,\n    \"expiry_year\": 2030,\n    \"cvv\": \"987\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "const text = pm.response.text();",
+                  "pm.test('does not return the full card number', () => pm.expect(text).to.not.include('4111111111111111'));",
+                  "pm.test('does not return the CVV', () => { pm.expect(text).to.not.include('\"987\"'); pm.expect(text).to.not.include('cvv'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Formato único de errores",
+      "description": "Every API error uses {\"error\": {\"code\", \"message\"}}.",
+      "item": [
+        {
+          "name": "Unknown API route",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/does-not-exist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "does-not-exist"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 404', () => pm.response.to.have.status(404));",
+                  "",
+                  "pm.test('error code is NOT_FOUND', () => pm.expect(pm.response.json().error.code).to.eql('NOT_FOUND'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Method not allowed",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 405', () => pm.response.to.have.status(405));",
+                  "",
+                  "pm.test('error code is HTTP_ERROR', () => pm.expect(pm.response.json().error.code).to.eql('HTTP_ERROR'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
