@@ -32,6 +32,7 @@ services:
       DB_DATABASE: ${DB_DATABASE:?Set DB_DATABASE in .env (see .env.example)}
       DB_USERNAME: ${DB_USERNAME:?Set DB_USERNAME in .env (see .env.example)}
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env (see .env.example)}
+      ACQUIRER_BASE_URL: http://acquirer-mock:8000
     volumes:
       - ./api:/var/www/html
     depends_on:
@@ -43,6 +44,34 @@ services:
       timeout: 3s
       retries: 20
       start_period: 60s
+
+  # Simulates the acquirer with the same image and code as the API. It has no database and is
+  # not routed by the gateway: only the API reaches it, through the internal network (DA-03).
+  acquirer-mock:
+    build: ./api
+    user: "${APP_UID:-1000}:${APP_GID:-1000}"
+    # --no-reload passes the container environment to the server workers; otherwise
+    # artisan serve drops every variable outside its passthrough list when api/.env exists.
+    command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000", "--no-reload"]
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_KEY: ${APP_KEY:?Set APP_KEY in .env (see .env.example)}
+      ACQUIRER_MOCK_ENABLED: "true"
+      PHP_CLI_SERVER_WORKERS: 4
+      CACHE_STORE: file
+      SESSION_DRIVER: array
+      LOG_CHANNEL: stderr
+    volumes:
+      - ./api:/var/www/html
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@fsockopen('127.0.0.1', 8000) ? 0 : 1);"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   web:
     build: ./web

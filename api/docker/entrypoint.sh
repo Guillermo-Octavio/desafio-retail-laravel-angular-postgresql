@@ -8,6 +8,9 @@ if [ ! -f vendor/autoload.php ]; then
     composer install --no-interaction --prefer-dist
 fi
 
-php artisan migrate --force
+# The acquirer mock has no database, so only the API runs the migrations.
+if [ "${ACQUIRER_MOCK_ENABLED:-false}" != "true" ]; then
+    php artisan migrate --force
+fi
 
 exec "$@"
