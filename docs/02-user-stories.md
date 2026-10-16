@@ -286,7 +286,7 @@ Característica: Tolerar errores temporales del adquirente
 1. `POST /api/payments` exige el header `Idempotency-Key`; sin él, la respuesta es `400` `IDEMPOTENCY_KEY_MISSING`.
 2. La clave es única **por comercio**: dos comercios pueden usar la misma clave de forma independiente.
 3. Mismo comercio, misma clave y mismo contenido → se devuelve la respuesta original (mismo código y cuerpo) con el header `Idempotent-Replayed: true`, sin crear otra transacción.
-4. Mismo comercio, misma clave y contenido distinto → `409` `IDEMPOTENCY_KEY_REUSED`.
+4. Mismo comercio, misma clave y contenido distinto → `409` `IDEMPOTENCY_KEY_REUSED`. El CVV no forma parte del contenido comparado (SUP-11): con solo el CVV distinto, se devuelve la respuesta original.
 5. Misma clave mientras la primera solicitud sigue en proceso → `409` `IDEMPOTENCY_KEY_IN_PROGRESS`.
 6. Las solicitudes que fallan la validación de entrada (`422`) no reservan la clave.
 

@@ -53,3 +53,4 @@ Ruta inline: tareas secuenciales sobre un mismo flujo; no hay motivo de delegaci
   - baf818a: puerto `MonotonicTimer` (`hrtime`) para medir la duración de cada intento; la fecha del evento sigue viniendo de `Clock`.
   - RED: 21 pruebas fallando. GREEN: 242 pruebas.
   - Quedan abiertos, sin cambios: la migración `000004` sin backfill (ninguna base tiene filas), la rotación de `APP_KEY`, la secuencia ante una reconstrucción (no existe) y la clave atascada (limitación conocida).
+- **L9** (2026-10-16) Instrucción del usuario: "sí, agrégalo y luego haz merge a main y push". Se documentó en SUP-11 y en el criterio 4 de HU-06 que el CVV no forma parte del contenido comparado.
