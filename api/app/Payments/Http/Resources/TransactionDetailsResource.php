@@ -6,7 +6,6 @@ namespace App\Payments\Http\Resources;
 
 use App\Payments\Application\Queries\TransactionDetails;
 use App\Payments\Application\Queries\TransactionEventView;
-use DateTimeInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -34,7 +33,7 @@ final class TransactionDetailsResource extends JsonResource
                 'reason' => $event->reason,
                 'metadata' => $event->metadata,
                 'correlation_id' => $event->correlationId,
-                'occurred_at' => $event->occurredAt->format(DateTimeInterface::RFC3339_EXTENDED),
+                'occurred_at' => BusinessTime::format($event->occurredAt),
             ], $this->resource->events),
         ];
     }

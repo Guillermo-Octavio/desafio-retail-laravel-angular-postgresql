@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Carbon;
 use Tests\Support\FakeAcquirer;
 use Tests\Support\PaymentRows;
 
@@ -49,3 +50,12 @@ it('answers TRANSACTION_NOT_FOUND for an unknown or malformed id', function (str
     'nil UUID' => ['00000000-0000-0000-0000-000000000000'],
     'not a UUID' => ['no-es-un-uuid'],
 ]);
+
+it('shows the event times in Santiago time too', function () {
+    Carbon::setTestNow('2026-10-15 12:00:00');
+    $transactionId = $this->postJson('/api/payments', PaymentRows::paymentBody(), ['Idempotency-Key' => 'key-001'])->json('transaction_id');
+
+    $events = $this->getJson("/api/payments/{$transactionId}")->json('events');
+
+    expect(array_unique(array_column($events, 'occurred_at')))->toBe(['2026-10-15T09:00:00.000-03:00']);
+});

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Payments\Http\Resources;
 
 use App\Payments\Application\Queries\TransactionSummary;
-use DateTimeInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -35,8 +34,8 @@ final class TransactionResource extends JsonResource
                 'brand' => $transaction->cardBrand,
                 'last4' => $transaction->cardLast4,
             ],
-            'created_at' => $transaction->createdAt->format(DateTimeInterface::RFC3339_EXTENDED),
-            'updated_at' => $transaction->updatedAt->format(DateTimeInterface::RFC3339_EXTENDED),
+            'created_at' => BusinessTime::format($transaction->createdAt),
+            'updated_at' => BusinessTime::format($transaction->updatedAt),
         ];
     }
 }

@@ -7,6 +7,7 @@ use App\Payments\Application\Exceptions\IdempotencyKeyReused;
 use App\Payments\Http\Exceptions\MissingIdempotencyKey;
 use App\Payments\Http\Requests\CreatePaymentRequest;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Http;
@@ -35,11 +36,34 @@ it('creates a payment and answers 201 with its final state', function () {
         ->and(DB::table('transactions')->where('merchant_id', 'merchant-001')->count())->toBe(1);
 });
 
-it('returns the dates in ISO 8601 with milliseconds', function () {
+it('returns the dates in ISO 8601 in Santiago time, with the offset of each season', function (string $utcNow, string $expected) {
+    Carbon::setTestNow($utcNow);
+
     $response = $this->postJson('/api/payments', PaymentRows::paymentBody(), ['Idempotency-Key' => 'key-001']);
 
-    expect($response->json('created_at'))->toMatch('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}\+00:00$/')
-        ->and($response->json('updated_at'))->toMatch('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}\+00:00$/');
+    expect($response->json('created_at'))->toBe($expected)
+        ->and($response->json('updated_at'))->toMatch('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}-0[34]:00$/');
+})->with([
+    'summer time, UTC-3' => ['2026-10-15 12:00:00', '2026-10-15T09:00:00.000-03:00'],
+    'winter time, UTC-4' => ['2026-06-15 12:00:00', '2026-06-15T08:00:00.000-04:00'],
+]);
+
+it('keeps storing the instant in UTC', function () {
+    Carbon::setTestNow('2026-10-15 12:00:00');
+
+    $this->postJson('/api/payments', PaymentRows::paymentBody(), ['Idempotency-Key' => 'key-001']);
+
+    expect(DB::selectOne("select to_char(created_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS') as created_at from transactions")->created_at)
+        ->toBe('2026-10-15 12:00:00');
+});
+
+it('follows the configured business timezone', function () {
+    Carbon::setTestNow('2026-10-15 12:00:00');
+    config(['payments.business_timezone' => 'UTC']);
+
+    $response = $this->postJson('/api/payments', PaymentRows::paymentBody(), ['Idempotency-Key' => 'key-001']);
+
+    expect($response->json('created_at'))->toBe('2026-10-15T12:00:00.000+00:00');
 });
 
 it('requires the Idempotency-Key header before validating the body', function (array $headers) {
