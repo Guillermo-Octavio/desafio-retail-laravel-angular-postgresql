@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, input } from '@angular/core';
+import { afterNextRender, Component, computed, ElementRef, input, viewChild } from '@angular/core';
 import { describeEvent } from '../data/event-description';
 import { formatAmount } from '../data/money';
 import { TransactionDetails } from '../data/transaction.models';
@@ -10,7 +10,7 @@ import { StatusBadge } from './status-badge';
   imports: [DatePipe, StatusBadge],
   template: `
     <article class="flex flex-col gap-6">
-      <h1 tabindex="-1" class="text-xl font-semibold text-slate-900">
+      <h1 #heading tabindex="-1" class="text-xl font-semibold text-slate-900 focus:outline-none">
         Transaction <span class="font-mono">{{ transaction().transaction_id }}</span>
       </h1>
 
@@ -54,6 +54,13 @@ import { StatusBadge } from './status-badge';
 })
 export class TransactionDetail {
   readonly transaction = input.required<TransactionDetails>();
+
+  private readonly heading = viewChild.required<ElementRef<HTMLElement>>('heading');
+
+  constructor() {
+    // Moves keyboard and screen reader focus to the new view, as the router does not.
+    afterNextRender(() => this.heading().nativeElement.focus());
+  }
 
   protected readonly amount = computed(() =>
     formatAmount(this.transaction().amount, this.transaction().currency),
